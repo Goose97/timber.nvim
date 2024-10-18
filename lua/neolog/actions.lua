@@ -2,19 +2,7 @@
 --- @field log_templates NeologLogTemplates
 local M = {}
 
-local LANGUAGE_SPEC = {
-  typescript = {
-    identifier = { "identifier", "shorthand_property_identifier_pattern" },
-    container = { "lexical_declaration", "return_statement", "expression_statement", "import_statement" },
-  },
-  tsx = {
-    identifier = { "identifier", "shorthand_property_identifier_pattern" },
-    container = { "lexical_declaration", "return_statement", "expression_statement", "import_statement" },
-  },
-}
-
 local utils = require("neolog.utils")
-local ts_utils = require("nvim-treesitter.ts_utils")
 
 --- Build the log label from template. Support special placeholers:
 ---   %identifier: the identifier text
@@ -73,41 +61,74 @@ local function insert_log_statement(label_template, log_target_node, insert_line
   indent_line_number(insert_line + 1)
 end
 
---- Traverse up the tree from the current node to find the container node
----@param position position
----@return boolean, TSNode?, number?
-local function resolve_log_target_fallback(position)
-  local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
-  local spec = LANGUAGE_SPEC[lang]
-  if not spec then
-    return false
+---Query all target containers in the current buffer that intersect with the given range
+---@alias logable_range {[1]: number, [2]: number}
+---@param lang string
+---@param range {[1]: number, [2]: number, [3]: number, [4]: number}
+---@return {container: TSNode, logable_range: logable_range?}[]
+local function query_log_target_container(lang, range)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local parser = vim.treesitter.get_parser(bufnr, lang)
+  local tree = parser:parse()[1]
+  local root = tree:root()
+
+  local query = vim.treesitter.query.get(lang, "neolog")
+  if not query then
+    vim.notify(string.format("logging_framework doesn't support %s language", lang), vim.log.levels.ERROR)
+    return {}
   end
 
-  local current_node = ts_utils.get_node_at_cursor()
+  local containers = {}
 
-  if not current_node then
-    return false
+  for _, match, metadata in query:iter_matches(root, bufnr, 0, -1) do
+    ---@type TSNode
+    local log_container = match[utils.get_key_by_value(query.captures, "log_container")]
+
+    local srow, scol, erow, ecol = log_container:range()
+    if log_container and utils.ranges_intersect({ srow, scol, erow, ecol }, range) then
+      ---@type TSNode?
+      local logable_range = match[utils.get_key_by_value(query.captures, "logable_range")]
+
+      local logable_range_col_range
+
+      if metadata.adjusted_logable_range then
+        logable_range_col_range = {
+          metadata.adjusted_logable_range[1],
+          metadata.adjusted_logable_range[3],
+        }
+      elseif logable_range then
+        logable_range_col_range = { logable_range:start()[1], logable_range:end_()[1] }
+      end
+
+      table.insert(containers, { container = log_container, logable_range = logable_range_col_range })
+    end
   end
 
-  if not utils.array_includes(spec.identifier, current_node:type()) then
-    return false
+  return containers
+end
+
+---Find all the log target nodes in the given container
+---@param container TSNode
+---@param lang string
+---@return TSNode[]
+local function find_log_target(container, lang)
+  local query = vim.treesitter.query.parse(
+    lang,
+    [[
+      ([
+        (identifier)
+        (shorthand_property_identifier_pattern)
+      ]) @log_target
+    ]]
+  )
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  local log_targets = {}
+  for _, node in query:iter_captures(container, bufnr, 0, -1) do
+    table.insert(log_targets, node)
   end
 
-  local log_target = current_node
-
-  -- Traverse up the tree to find the container node
-  ---@type TSNode?
-  local log_container_node = current_node
-  repeat
-    log_container_node = log_container_node and log_container_node:parent()
-  until log_container_node == nil or require("custom.utils").array_includes(spec.container, log_container_node:type())
-
-  if log_container_node then
-    local insert_line = position == "above" and log_container_node:start() or log_container_node:end_() + 1
-    return true, log_target, insert_line
-  else
-    return false
-  end
+  return log_targets
 end
 
 --- Add log statement for the current identifier at the cursor
@@ -133,40 +154,34 @@ function M.add_log(label_template, position)
     return
   end
 
-  local bufnr = vim.api.nvim_get_current_buf()
-  local parser = vim.treesitter.get_parser(bufnr, lang)
-  local tree = parser:parse()[1]
-  local root = tree:root()
+  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  -- TODO: support actual range
+  local selection_range = { cursor_pos[1] - 1, cursor_pos[2], cursor_pos[1] - 1, cursor_pos[2] }
+  local log_containers = query_log_target_container(lang, selection_range)
 
-  local log_target_node
-  local insert_line
+  for _, container in ipairs(log_containers) do
+    local log_targets = find_log_target(container.container, lang)
+    local logable_range = container.logable_range
 
-  for _, match, metadata in query:iter_matches(root, bufnr, 0, -1) do
-    ---@type TSNode
-    local log_target_capture = match[utils.get_key_by_value(query.captures, "log_target")]
+    local insert_line
 
-    ---@type TSNode
-    local logable_range = match[utils.get_key_by_value(query.captures, "logable_range")]
-
-    insert_line = metadata.adjusted_logable_range and metadata.adjusted_logable_range[1] or logable_range:start()
-    log_target_node = log_target_capture
-
-    -- Only process first match
-    break
-  end
-
-  if not log_target_node then
-    local success, _log_target_node, _insert_line = resolve_log_target_fallback(position)
-    if success then
-      log_target_node = _log_target_node
-      insert_line = _insert_line
+    if logable_range then
+      insert_line = logable_range[1]
+    else
+      if position == "above" then
+        insert_line = container.container:start()
+      else
+        insert_line = container.container:end_() + 1
+      end
     end
-  end
 
-  if log_target_node and insert_line then
-    insert_log_statement(label_template, log_target_node, insert_line)
-  else
-    vim.notify("Cursor is not inside a valid log target", vim.log.levels.INFO)
+    -- Filter targets that intersect with the given range
+    for _, log_target in ipairs(log_targets) do
+      local srow, scol, erow, ecol = log_target:range()
+      if utils.ranges_intersect({ srow, scol, erow, ecol }, selection_range) then
+        insert_log_statement(label_template, log_target, insert_line)
+      end
+    end
   end
 end
 
@@ -174,13 +189,6 @@ end
 ---@param templates NeologLogTemplates
 function M.setup(templates)
   M.log_templates = templates
-
-  -- Register the custom predicate
-  vim.treesitter.query.add_predicate("contains-cursor?", function(match, _, _, predicate)
-    local node = match[predicate[2]]
-    local cursor = vim.api.nvim_win_get_cursor(0)
-    return vim.treesitter.node_contains(node, { cursor[1] - 1, cursor[2], cursor[1] - 1, cursor[2] })
-  end, { force = true })
 
   -- Register the custom directive
   vim.treesitter.query.add_directive("adjust-range!", function(match, _, _, predicate, metadata)

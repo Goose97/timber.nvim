@@ -404,6 +404,7 @@ describe("typescript", function()
         expected = expected,
       })
     end)
+
     it("supports object destructuring parameters", function()
       local actions = require("neolog.actions")
 
