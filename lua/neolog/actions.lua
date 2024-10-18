@@ -5,11 +5,11 @@ local M = {}
 local LANGUAGE_SPEC = {
   typescript = {
     identifier = { "identifier", "shorthand_property_identifier_pattern" },
-    container = { "lexical_declaration", "return_statement", "expression_statement" },
+    container = { "lexical_declaration", "return_statement", "expression_statement", "import_statement" },
   },
   tsx = {
     identifier = { "identifier", "shorthand_property_identifier_pattern" },
-    container = { "lexical_declaration", "return_statement", "expression_statement" },
+    container = { "lexical_declaration", "return_statement", "expression_statement", "import_statement" },
   },
 }
 

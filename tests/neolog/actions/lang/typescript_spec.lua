@@ -464,4 +464,132 @@ describe("typescript", function()
       })
     end)
   end)
+
+  describe("supports import statements", function()
+    it("supports plain imports", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          import f|oo from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          import foo from 'bar'
+          console.log("foo", foo)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          import f|oo from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "above")
+        end,
+        expected = [[
+          console.log("foo", foo)
+          import foo from 'bar'
+        ]],
+      })
+    end)
+
+    it("supports named imports", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          import { fo|o } from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          import { foo } from 'bar'
+          console.log("foo", foo)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          import { fo|o } from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "above")
+        end,
+        expected = [[
+          console.log("foo", foo)
+          import { foo } from 'bar'
+        ]],
+      })
+    end)
+
+    it("supports named alias imports", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          import { foo as b|ar } from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          import { foo as bar } from 'bar'
+          console.log("bar", bar)
+        ]],
+      })
+      helper.assert_scenario({
+        input = [[
+          import { foo as b|ar } from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "above")
+        end,
+        expected = [[
+          console.log("bar", bar)
+          import { foo as bar } from 'bar'
+        ]],
+      })
+    end)
+
+    it("supports namespace imports", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          import * as f|oo from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          import * as foo from 'bar'
+          console.log("foo", foo)
+        ]],
+      })
+      helper.assert_scenario({
+        input = [[
+          import * as f|oo from 'bar'
+        ]],
+        filetype = "typescript",
+        action = function()
+          actions.add_log("%identifier", "above")
+        end,
+        expected = [[
+          console.log("foo", foo)
+          import * as foo from 'bar'
+        ]],
+      })
+    end)
+  end)
 end)
