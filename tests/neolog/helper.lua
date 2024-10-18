@@ -8,6 +8,8 @@ local assert = require("luassert")
 local function setup_buffer(lines, cursor, filetype)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_set_option_value("filetype", filetype, { buf = buf })
+  vim.api.nvim_set_option_value("shiftwidth", 2, { buf = buf })
+
   vim.api.nvim_command("buffer " .. buf)
   vim.api.nvim_buf_set_lines(0, 0, -1, true, lines)
   vim.api.nvim_win_set_cursor(0, cursor)
@@ -24,19 +26,21 @@ end
 ---@param input string
 ---@return string[], {[1]: number, [2]: number}
 local function parse_input(input)
-  local lines = vim.split(input, "\n")
-  local biggest_indent = 0
+  -- Remove trailing whitespaces
+  input = input:gsub("%s+$", "")
+  local lines = vim.split(input, "\n", { trimempty = true })
+  local smallest_indent
 
   for _, line in ipairs(lines) do
     -- Count the number of leading whitespaces
     local leading_whitespaces = line:match("^%s*")
-    biggest_indent = math.max(biggest_indent, #leading_whitespaces)
+    smallest_indent = smallest_indent and math.min(smallest_indent, #leading_whitespaces) or #leading_whitespaces
   end
 
   local cursor
 
   for i, line in ipairs(lines) do
-    line = line:sub(biggest_indent + 1)
+    line = line:sub(smallest_indent + 1)
 
     local start_index = line:find("|")
     if start_index then

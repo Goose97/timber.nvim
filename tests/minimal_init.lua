@@ -20,4 +20,5 @@ require("nvim-treesitter.configs").setup({
   ensure_installed = { "typescript", "tsx" },
   sync_install = true,
   auto_install = false,
+  indent = { enable = true },
 })
