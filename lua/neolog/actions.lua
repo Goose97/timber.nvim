@@ -141,8 +141,7 @@ function M.add_log(label_template, position)
   local log_target_node
   local insert_line
 
-  -- Only process first match
-  for _, match, metadata in query:iter_matches(root, bufnr, 0, 1) do
+  for _, match, metadata in query:iter_matches(root, bufnr, 0, -1) do
     ---@type TSNode
     local log_target_capture = match[utils.get_key_by_value(query.captures, "log_target")]
 
@@ -151,6 +150,9 @@ function M.add_log(label_template, position)
 
     insert_line = metadata.adjusted_logable_range and metadata.adjusted_logable_range[1] or logable_range:start()
     log_target_node = log_target_capture
+
+    -- Only process first match
+    break
   end
 
   if not log_target_node then
