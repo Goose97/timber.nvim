@@ -121,7 +121,7 @@ local function query_log_target_container(lang, range)
           metadata.adjusted_logable_range[3],
         }
       elseif logable_range then
-        logable_range_col_range = { logable_range:start()[1], logable_range:end_()[1] }
+        logable_range_col_range = { logable_range:start(), logable_range:end_() }
       end
 
       table.insert(containers, { container = log_container, logable_range = logable_range_col_range })

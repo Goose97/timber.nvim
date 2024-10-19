@@ -10,6 +10,7 @@ local default_config = {
     typescript = [[console.log("%label", %identifier)]],
     jsx = [[console.log("%label", %identifier)]],
     tsx = [[console.log("%label", %identifier)]],
+    lua = [[print("%label", %identifier)]],
   },
 }
 
