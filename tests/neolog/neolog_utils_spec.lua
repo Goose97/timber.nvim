@@ -1,5 +1,6 @@
 local utils = require("neolog.utils")
 local assert = require("luassert")
+local helper = require("tests.neolog.helper")
 
 describe("neolog.utils", function()
   describe("ranges_intersect", function()
@@ -39,6 +40,90 @@ describe("neolog.utils", function()
       -- -----
       assert.is.False(utils.ranges_intersect({ 4, 7, 5, 5 }, { 1, 2, 4, 4 }))
       assert.is.False(utils.ranges_intersect({ 5, 7, 6, 5 }, { 1, 2, 4, 4 }))
+    end)
+  end)
+
+  describe("get_selection_range", function()
+    it("returns the cursor position for normal mode", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          cons|t foo = "bar"
+        ]],
+        filetype = "typescript",
+        expected = function()
+          local range = utils.get_selection_range()
+          assert.are.same({ 1, 3, 1, 3 }, range)
+        end,
+      })
+    end)
+
+    it("returns the visual selection range for visual mode", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          cons|t foo = "bar"
+          const bar = "baz"
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! v5lj")
+        end,
+        expected = function()
+          local range = utils.get_selection_range()
+          assert.are.same({ 1, 3, 2, 8 }, range)
+        end,
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const foo = "bar"
+          const bar = "|baz"
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! v6hk")
+        end,
+        expected = function()
+          local range = utils.get_selection_range()
+          assert.are.same({ 1, 6, 2, 12 }, range)
+        end,
+      })
+    end)
+
+    it("returns the visual line selection range for visual line mode", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          cons|t foo = "bar"
+          const bar = "baz"
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! Vj")
+        end,
+        expected = function()
+          local range = utils.get_selection_range()
+          assert.are.same({ 1, 0, 2, vim.v.maxcol }, range)
+        end,
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const foo = "bar"
+          const bar = "|baz"
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! Vk")
+        end,
+        expected = function()
+          local range = utils.get_selection_range()
+          assert.are.same({ 1, 0, 2, vim.v.maxcol }, range)
+        end,
+      })
     end)
   end)
 end)

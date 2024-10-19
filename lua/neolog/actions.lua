@@ -41,7 +41,7 @@ local function build_log_statement(label_text, identifier_text)
   return template
 end
 
----@param line_number number
+---@param line_number number 1-indexed
 local function indent_line_number(line_number)
   local current_pos = vim.api.nvim_win_get_cursor(0)
   vim.api.nvim_win_set_cursor(0, { line_number, 0 })
@@ -51,14 +51,39 @@ end
 
 ---@param label_template string
 ---@param log_target_node TSNode
----@param insert_line number
-local function insert_log_statement(label_template, log_target_node, insert_line)
+---@return string
+local function build_log_statement_line(label_template, log_target_node)
   local bufnr = vim.api.nvim_get_current_buf()
   local identifier_text = vim.treesitter.get_node_text(log_target_node, bufnr)
   local log_label = build_log_label(label_template, log_target_node)
-  local log_statement = build_log_statement(log_label, identifier_text)
-  vim.api.nvim_buf_set_lines(bufnr, insert_line, insert_line, false, { log_statement })
-  indent_line_number(insert_line + 1)
+  return build_log_statement(log_label, identifier_text)
+end
+
+---@param statements {content: string[], row: number, log_target: TSNode}[]
+local function insert_log_statements(statements)
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  table.sort(statements, function(a, b)
+    -- If two statements have the same row, sort by the appearance order of the log target
+    if a.row == b.row then
+      local a_row, a_col = a.log_target:start()
+      local b_row, b_col = b.log_target:start()
+      return a_row == b_row and a_col < b_col or a_row < b_row
+    end
+
+    return a.row < b.row
+  end)
+
+  -- Offset the row numbers
+  local offset = 0
+
+  for _, statement in ipairs(statements) do
+    local insert_line = statement.row + offset
+    vim.api.nvim_buf_set_lines(bufnr, insert_line, insert_line, false, statement.content)
+    indent_line_number(insert_line + 1)
+
+    offset = offset + #statement.content
+  end
 end
 
 ---Query all target containers in the current buffer that intersect with the given range
@@ -154,24 +179,24 @@ function M.add_log(label_template, position)
     return
   end
 
-  local cursor_pos = vim.api.nvim_win_get_cursor(0)
-  -- TODO: support actual range
-  local selection_range = { cursor_pos[1] - 1, cursor_pos[2], cursor_pos[1] - 1, cursor_pos[2] }
+  local selection_range = utils.get_selection_range()
+
   local log_containers = query_log_target_container(lang, selection_range)
+  local to_insert = {}
 
   for _, container in ipairs(log_containers) do
     local log_targets = find_log_target(container.container, lang)
     local logable_range = container.logable_range
 
-    local insert_line
+    local insert_row
 
     if logable_range then
-      insert_line = logable_range[1]
+      insert_row = logable_range[1]
     else
       if position == "above" then
-        insert_line = container.container:start()
+        insert_row = container.container:start()
       else
-        insert_line = container.container:end_() + 1
+        insert_row = container.container:end_() + 1
       end
     end
 
@@ -179,10 +204,16 @@ function M.add_log(label_template, position)
     for _, log_target in ipairs(log_targets) do
       local srow, scol, erow, ecol = log_target:range()
       if utils.ranges_intersect({ srow, scol, erow, ecol }, selection_range) then
-        insert_log_statement(label_template, log_target, insert_line)
+        table.insert(to_insert, {
+          content = { build_log_statement_line(label_template, log_target) },
+          row = insert_row,
+          log_target = log_target,
+        })
       end
     end
   end
+
+  insert_log_statements(to_insert)
 end
 
 -- Register the custom predicate

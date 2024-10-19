@@ -593,4 +593,117 @@ describe("typescript", function()
       })
     end)
   end)
+  describe("supports visual selection log", function()
+    it("supports variable declaration", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          const |a = b + c
+          const a1 = {b: b1, c: c1}
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! v$")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const a = b + c
+          console.log("a", a)
+          console.log("b", b)
+          console.log("c", c)
+          const a1 = {b: b1, c: c1}
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const |a = b + c
+          const a1 = {b: b1, c: c1}
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! v$")
+          actions.add_log("%identifier", "above")
+        end,
+        expected = [[
+          console.log("a", a)
+          console.log("b", b)
+          console.log("c", c)
+          const a = b + c
+          const a1 = {b: b1, c: c1}
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const a = b + c
+          const a1 = {b: b|1, c: c1}
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! Vk")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const a = b + c
+          console.log("a", a)
+          console.log("b", b)
+          console.log("c", c)
+          const a1 = {b: b1, c: c1}
+          console.log("a1", a1)
+          console.log("b1", b1)
+          console.log("c1", c1)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const a = b + c
+          const a1 = {b: b|1, c: c1}
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! Vk")
+          actions.add_log("%identifier", "above")
+        end,
+        expected = [[
+          console.log("a", a)
+          console.log("b", b)
+          console.log("c", c)
+          const a = b + c
+          console.log("a1", a1)
+          console.log("b1", b1)
+          console.log("c1", c1)
+          const a1 = {b: b1, c: c1}
+        ]],
+      })
+    end)
+
+    it("supports function parameters", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          function foo(a: string, b: st|ring, { c: c1, d: d1 }: any) {
+            return null
+          }
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! vi)")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          function foo(a: string, b: string, { c: c1, d: d1 }: any) {
+            console.log("a", a)
+            console.log("b", b)
+            console.log("c1", c1)
+            console.log("d1", d1)
+            return null
+          }
+        ]],
+      })
+    end)
+  end)
 end)

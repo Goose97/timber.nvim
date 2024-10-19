@@ -57,8 +57,8 @@ end
 ---@class Scenario
 ---@field input string
 ---@field filetype string
----@field action function
----@field expected string
+---@field action function?
+---@field expected string | function
 
 ---Given an input, execute a callback, and assert the expected output.
 ---The input supports specifying the cursor position with a pipe character.
@@ -70,10 +70,18 @@ end
 function M.assert_scenario(scenario)
   local input_lines, cursor = parse_input(scenario.input)
   setup_buffer(input_lines, cursor, scenario.filetype)
-  scenario.action()
 
-  local expected_lines = parse_input(scenario.expected)
-  assert_buf_output(expected_lines)
+  if scenario.action then
+    scenario.action()
+  end
+
+  local expected = scenario.expected
+  if type(expected) == "function" then
+    expected()
+  else
+    local expected_lines = parse_input(expected)
+    assert_buf_output(expected_lines)
+  end
 end
 
 return M

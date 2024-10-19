@@ -70,4 +70,42 @@ function M.ranges_intersect(range1, range2)
   end
 end
 
+---Return the 0-indexed range of the selection range
+---If is in normal, return the position of the cursor
+---If is in visual, return the range of the visual selection
+---If is in visual line, return the range of the visual line selection
+---@return {[1]: number, [2]: number, [3]: number, [4]: number}
+function M.get_selection_range()
+  local mode = vim.api.nvim_get_mode().mode
+  -- After exiting visual mode, these marks will be available
+  -- (1,1)-indexed position
+  local result1 = vim.fn.getpos("v")
+  local result2 = vim.fn.getpos(".")
+  local srow = result1[2]
+  local scol = result1[3]
+  local erow = result2[2]
+  local ecol = result2[3]
+
+  -- If we are selecting visual range from bottom to top (start after end),
+  -- swap the start and end
+  if srow > erow or srow == erow and scol > ecol then
+    local temp = srow
+    srow = erow
+    erow = temp
+
+    temp = scol
+    scol = ecol
+    ecol = temp
+  end
+
+  if mode == "v" then
+    return { srow - 1, scol - 1, erow - 1, ecol - 1 }
+  elseif mode == "V" then
+    return { srow - 1, 0, erow - 1, vim.v.maxcol }
+  else
+    local cursor_pos = vim.api.nvim_win_get_cursor(0)
+    return { cursor_pos[1] - 1, cursor_pos[2], cursor_pos[1] - 1, cursor_pos[2] }
+  end
+end
+
 return M
