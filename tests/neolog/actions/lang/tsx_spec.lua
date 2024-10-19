@@ -93,13 +93,12 @@ describe("typescriptreact", function()
       function foo() {
         console.log("a", a)
         return (
-          <div className={a|}>
+          <div className={a}>
             <div>{b + 1}</div>
           </div>
         )
       }
     ]]
-
 
     helper.assert_scenario({
       input = input,
@@ -172,7 +171,7 @@ describe("typescriptreact", function()
         const b = true
         const el = (
           <div>
-          {b && <div>{|a + 1}</div>}
+          {b && <div>{a + 1}</div>}
           <input className={c} />
           </div>
         )

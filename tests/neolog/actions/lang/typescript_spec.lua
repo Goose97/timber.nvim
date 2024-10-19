@@ -260,7 +260,7 @@ describe("typescript", function()
       local expected1 = [[
         const foo =
           predicate ?
-            ba|r :
+            bar :
             baz
         console.log("bar", bar)
       ]]
@@ -269,7 +269,7 @@ describe("typescript", function()
         console.log("bar", bar)
         const foo =
           predicate ?
-            ba|r :
+            bar :
             baz
       ]]
 
@@ -305,7 +305,7 @@ describe("typescript", function()
       local expected1 = [[
         const foo = {
           bar: bar,
-          baz: ba|z,
+          baz: baz,
         }
         console.log("baz", baz)
       ]]
@@ -314,7 +314,7 @@ describe("typescript", function()
         console.log("baz", baz)
         const foo = {
           bar: bar,
-          baz: ba|z,
+          baz: baz,
         }
       ]]
 
@@ -345,13 +345,13 @@ describe("typescript", function()
       ]]
 
       local expected1 = [[
-        const foo = foo(bar, ba|z)
+        const foo = foo(bar, baz)
         console.log("baz", baz)
       ]]
 
       local expected2 = [[
         console.log("baz", baz)
-        const foo = foo(bar, ba|z)
+        const foo = foo(bar, baz)
       ]]
 
       helper.assert_scenario({
@@ -389,7 +389,7 @@ describe("typescript", function()
       local expected = [[
         try {
           throw new Error("foo")
-        } catch (err|or) {
+        } catch (error) {
           console.log("error", error)
           throw error
         }

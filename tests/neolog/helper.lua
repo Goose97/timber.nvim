@@ -82,7 +82,12 @@ function M.assert_scenario(scenario)
   if type(expected) == "function" then
     expected()
   else
-    local expected_lines = parse_input(expected)
+    local expected_lines, cursor1 = parse_input(expected)
+
+    if cursor1 then
+      error("Unexpected cursor position in scenario.expected")
+    end
+
     assert_buf_output(expected_lines)
   end
 end
