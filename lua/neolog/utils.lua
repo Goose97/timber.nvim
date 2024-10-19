@@ -10,6 +10,60 @@ function M.array_includes(array, value)
   return false
 end
 
+function M.array_find(array, predicate)
+  for i, v in ipairs(array) do
+    if predicate(v, i) then
+      return v
+    end
+  end
+
+  return nil
+end
+
+function M.array_map(array, mapper)
+  local result = {}
+
+  for i, v in ipairs(array) do
+    table.insert(result, mapper(v, i))
+  end
+
+  return result
+end
+
+function M.array_filter(array, predicate)
+  local result = {}
+
+  for i, v in ipairs(array) do
+    if predicate(v, i) then
+      table.insert(result, v)
+    end
+  end
+
+  return result
+end
+
+function M.array_any(array, predicate)
+  for i, v in ipairs(array) do
+    if predicate(v, i) then
+      return true
+    end
+  end
+
+  return false
+end
+
+function M.array_sort_with_index(array, comparator)
+  local with_index = M.array_map(array, function(v, i)
+    return { v, i }
+  end)
+
+  table.sort(with_index, comparator)
+
+  return M.array_map(with_index, function(item)
+    return item[1]
+  end)
+end
+
 function M.get_key_by_value(t, value)
   for k, v in pairs(t) do
     if v == value then
@@ -70,8 +124,27 @@ function M.ranges_intersect(range1, range2)
   end
 end
 
+---Check if range1 includes range2
+---@param range1 {[1]: number, [2]: number, [3]: number, [4]: number}
+---@param range2 {[1]: number, [2]: number, [3]: number, [4]: number}
+---@return boolean
+function M.range_include(range1, range2)
+  if range_start_before(range2, range1) then
+    return false
+  end
+
+  -- range1 starts before range2
+  -- For range1 to include range2, range1 must end after range2 end
+  if range1[3] == range2[3] then
+    return range1[4] >= range2[4]
+  else
+    return range1[3] >= range2[3]
+  end
+end
+
 ---Return the 0-indexed range of the selection range
----If is in normal, return the position of the cursor
+---If is in normal, return the range of the current Treesitter node. If no node found,
+---return the position of the cursor
 ---If is in visual, return the range of the visual selection
 ---If is in visual line, return the range of the visual line selection
 ---@return {[1]: number, [2]: number, [3]: number, [4]: number}
@@ -105,6 +178,62 @@ function M.get_selection_range()
   else
     local cursor_pos = vim.api.nvim_win_get_cursor(0)
     return { cursor_pos[1] - 1, cursor_pos[2], cursor_pos[1] - 1, cursor_pos[2] }
+  end
+end
+
+---Given a Treesitter node, return the (0,0)-indexed range of the node
+function M.get_ts_node_range(node)
+  local srow, scol, erow, ecol = node:range()
+  -- Minus 1 because the end is non-inclusive
+  return { srow, scol, erow, ecol - 1 }
+end
+
+---Given two Treesitter nodes a and b, check if node_a starts before node_b
+---@param node_a TSNode
+---@param node_b TSNode
+---@return "before" | "equal" | "after"
+function M.compare_ts_node_start(node_a, node_b)
+  local srow_a, scol_a = node_a:start()
+  local srow_b, scol_b = node_b:start()
+  if srow_a == srow_b then
+    if scol_a == scol_b then
+      return "equal"
+    elseif scol_a < scol_b then
+      return "before"
+    else
+      return "after"
+    end
+  end
+
+  if srow_a < srow_b then
+    return "before"
+  else
+    return "after"
+  end
+end
+
+---Given two Treesitter nodes a and b, check if node_a ends before node_b
+---@param node_a TSNode
+---@param node_b TSNode
+---@return "before" | "equal" | "after"
+function M.compare_ts_node_end(node_a, node_b)
+  local erow_a, ecol_a = node_a:end_()
+  local erow_b, ecol_b = node_b:end_()
+
+  if erow_a == erow_b then
+    if ecol_a == ecol_b then
+      return "equal"
+    elseif ecol_a < ecol_b then
+      return "before"
+    else
+      return "after"
+    end
+  end
+
+  if erow_a < erow_b then
+    return "before"
+  else
+    return "after"
   end
 end
 

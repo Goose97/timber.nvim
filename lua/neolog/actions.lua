@@ -109,8 +109,7 @@ local function query_log_target_container(lang, range)
     ---@type TSNode
     local log_container = match[utils.get_key_by_value(query.captures, "log_container")]
 
-    local srow, scol, erow, ecol = log_container:range()
-    if log_container and utils.ranges_intersect({ srow, scol, erow, ecol }, range) then
+    if log_container and utils.ranges_intersect(utils.get_ts_node_range(log_container), range) then
       ---@type TSNode?
       local logable_range = match[utils.get_key_by_value(query.captures, "logable_range")]
 
@@ -139,7 +138,7 @@ end
 local function find_log_target(container, lang)
   local query = vim.treesitter.query.get(lang, "neolog-log-target")
   if not query then
-    vim.notify(string.format("logging_framework doesn't support %s language 1", lang), vim.log.levels.ERROR)
+    vim.notify(string.format("logging_framework doesn't support %s language", lang), vim.log.levels.ERROR)
     return {}
   end
 
@@ -161,6 +160,85 @@ local function get_lang(filetype)
   end
 
   return vim.treesitter.language.get_lang(vim.bo.filetype)
+end
+
+---Group log targets that overlap with each other
+---Due to the nature of the AST, if two nodes are overlapping, one must strictly
+---include another
+---@param log_targets TSNode[]
+---@return TSNode[][]
+local function group_overlapping_log_targets(log_targets)
+  -- Add index to make sure the sort is stable
+  log_targets = utils.array_sort_with_index(log_targets, function(a, b)
+    local result = utils.compare_ts_node_start(a[1], b[1])
+    return result == "equal" and a[2] < b[2] or result == "before"
+  end)
+
+  local groups = {}
+
+  ---@type TSNode[]
+  local current_group = {}
+
+  for _, log_target in ipairs(log_targets) do
+    if #current_group == 0 then
+      table.insert(current_group, log_target)
+    else
+      -- Check the current node with each node in the current group
+      -- If it matches any of the node, it belongs to the current group
+      -- If it not, move it into a new group
+      local insersect_any = utils.array_any(current_group, function(node)
+        return utils.ranges_intersect(utils.get_ts_node_range(node), utils.get_ts_node_range(log_target))
+      end)
+
+      if insersect_any then
+        table.insert(current_group, log_target)
+      else
+        table.insert(groups, current_group)
+        current_group = { log_target }
+      end
+    end
+  end
+
+  if #current_group > 0 then
+    table.insert(groups, current_group)
+  end
+
+  return groups
+end
+
+---Given a group of nodes, pick the "best" node
+---We sort the nodes by the selection range and pick the first node which is
+---fully included in the selection range
+---@param nodes TSNode[]
+---@params selection_range {[1]: number, [2]: number, [3]: number, [4]: number}
+---@return TSNode
+local function pick_best_node(nodes, selection_range)
+  if #nodes == 0 then
+    error("nodes can't be empty")
+  end
+
+  if #nodes == 1 then
+    return nodes[1]
+  end
+
+  -- Sort by node start then by node end (descending)
+  -- Add index to make sure the sort is stable
+  nodes = utils.array_sort_with_index(nodes, function(a, b)
+    local result = utils.compare_ts_node_start(a[1], b[1])
+    if result == "equal" then
+      result = utils.compare_ts_node_end(a[1], b[1])
+      return result == "equal" and a[2] < b[2] or result == "after"
+    else
+      return result == "before"
+    end
+  end)
+
+  -- @type TSNode?
+  local best_node = utils.array_find(nodes, function(node)
+    return utils.range_include(selection_range, utils.get_ts_node_range(node))
+  end)
+
+  return best_node or nodes[#nodes]
 end
 
 --- Add log statement for the current identifier at the cursor
@@ -201,16 +279,25 @@ function M.add_log(label_template, position)
       end
     end
 
+    log_targets = utils.array_filter(log_targets, function(node)
+      return utils.ranges_intersect(selection_range, utils.get_ts_node_range(node))
+      -- return utils.range_include(selection_range, utils.get_ts_node_range(node))
+    end)
+
+    -- For each group, we pick the "biggest" node
+    -- A node is the biggest if it contains all other nodes in the group
+    local groups = group_overlapping_log_targets(log_targets)
+    log_targets = utils.array_map(groups, function(group)
+      return pick_best_node(group, selection_range)
+    end)
+
     -- Filter targets that intersect with the given range
     for _, log_target in ipairs(log_targets) do
-      local srow, scol, erow, ecol = log_target:range()
-      if utils.ranges_intersect({ srow, scol, erow, ecol }, selection_range) then
-        table.insert(to_insert, {
-          content = { build_log_statement_line(label_template, log_target) },
-          row = insert_row,
-          log_target = log_target,
-        })
-      end
+      table.insert(to_insert, {
+        content = { build_log_statement_line(label_template, log_target) },
+        row = insert_row,
+        log_target = log_target,
+      })
     end
   end
 

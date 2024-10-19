@@ -43,6 +43,32 @@ describe("neolog.utils", function()
     end)
   end)
 
+  describe("ranges_include", function()
+    it("returns true for range1 includes range2", function()
+      -- -----
+      -- -----
+      assert.is.True(utils.range_include({ 1, 2, 4, 4 }, { 1, 2, 4, 4 }))
+
+      -- ------
+      --  ----
+      assert.is.True(utils.range_include({ 0, 2, 4, 4 }, { 1, 2, 3, 4 }))
+    end)
+
+    it("returns false for non-overlapping ranges", function()
+      -- ------
+      --  -------
+      assert.is.False(utils.range_include({ 2, 2, 4, 4 }, { 3, 3, 5, 5 }))
+
+      --  -------
+      -- ------
+      assert.is.False(utils.range_include({ 3, 3, 5, 5 }, { 2, 2, 4, 4 }))
+
+      --  ----
+      -- ------
+      assert.is.False(utils.range_include({ 2, 2, 4, 4 }, { 0, 0, 5, 5 }))
+    end)
+  end)
+
   describe("get_selection_range", function()
     it("returns the cursor position for normal mode", function()
       helper.assert_scenario({

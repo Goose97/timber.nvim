@@ -545,6 +545,135 @@ describe("javascript", function()
       })
     end)
   end)
+
+  describe("supports member access expression", function()
+    it("supports dot member access", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          const foo = ba|r.bar
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar.bar
+          console.log("bar", bar)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = bar.ba|z.baf
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar.baz.baf
+          console.log("bar.baz", bar.baz)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = ba|r.bar
+        ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! v$")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar.bar
+          console.log("bar", bar)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = ba|r.bar
+        ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! V")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar.bar
+          console.log("foo", foo)
+          console.log("bar.bar", bar.bar)
+        ]],
+      })
+    end)
+
+    it("supports bracket member access", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          const foo = ba|r["bar"]
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar["bar"]
+          console.log("bar", bar)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = bar["ba|z"]["baf"]
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar["baz"]["baf"]
+          console.log("bar["baz"]", bar["baz"])
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = ba|r["bar"]
+        ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! v$")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar["bar"]
+          console.log("bar", bar)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = ba|r["bar"]
+        ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! V")
+          actions.add_log("%identifier", "below")
+        end,
+        expected = [[
+          const foo = bar["bar"]
+          console.log("foo", foo)
+          console.log("bar["bar"]", bar["bar"])
+        ]],
+      })
+    end)
+  end)
+
   describe("supports visual selection log", function()
     it("supports variable declaration", function()
       local actions = require("neolog.actions")
