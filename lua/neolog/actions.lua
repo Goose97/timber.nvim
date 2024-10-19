@@ -97,7 +97,7 @@ local function query_log_target_container(lang, range)
   local tree = parser:parse()[1]
   local root = tree:root()
 
-  local query = vim.treesitter.query.get(lang, "neolog")
+  local query = vim.treesitter.query.get(lang, "neolog-log-container")
   if not query then
     vim.notify(string.format("logging_framework doesn't support %s language", lang), vim.log.levels.ERROR)
     return {}
@@ -137,15 +137,11 @@ end
 ---@param lang string
 ---@return TSNode[]
 local function find_log_target(container, lang)
-  local query = vim.treesitter.query.parse(
-    lang,
-    [[
-      ([
-        (identifier)
-        (shorthand_property_identifier_pattern)
-      ]) @log_target
-    ]]
-  )
+  local query = vim.treesitter.query.get(lang, "neolog-log-target")
+  if not query then
+    vim.notify(string.format("logging_framework doesn't support %s language 1", lang), vim.log.levels.ERROR)
+    return {}
+  end
 
   local bufnr = vim.api.nvim_get_current_buf()
   local log_targets = {}
@@ -164,12 +160,6 @@ function M.add_log(label_template, position)
   local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
   if not lang then
     vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
-    return
-  end
-
-  local query = vim.treesitter.query.get(lang, "neolog")
-  if not query then
-    vim.notify(string.format("logging_framework doesn't support %s language", lang), vim.log.levels.ERROR)
     return
   end
 

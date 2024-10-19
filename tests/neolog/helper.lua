@@ -33,8 +33,11 @@ local function parse_input(input)
 
   for _, line in ipairs(lines) do
     -- Count the number of leading whitespaces
+    -- Don't consider indent of empty lines
     local leading_whitespaces = line:match("^%s*")
-    smallest_indent = smallest_indent and math.min(smallest_indent, #leading_whitespaces) or #leading_whitespaces
+    if #leading_whitespaces ~= line:len() then
+      smallest_indent = smallest_indent and math.min(smallest_indent, #leading_whitespaces) or #leading_whitespaces
+    end
   end
 
   local cursor
