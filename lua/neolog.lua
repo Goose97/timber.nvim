@@ -8,6 +8,7 @@ local default_config = {
   log_templates = {
     javascript = [[console.log("%label", %identifier)]],
     typescript = [[console.log("%label", %identifier)]],
+    jsx = [[console.log("%label", %identifier)]],
     tsx = [[console.log("%label", %identifier)]],
   },
 }

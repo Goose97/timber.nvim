@@ -152,12 +152,23 @@ local function find_log_target(container, lang)
   return log_targets
 end
 
+---@param filetype string
+---@return string?
+local function get_lang(filetype)
+  -- Treesitter doesn't support jsx directly but through tsx
+  if filetype == "javascriptreact" then
+    return "tsx"
+  end
+
+  return vim.treesitter.language.get_lang(vim.bo.filetype)
+end
+
 --- Add log statement for the current identifier at the cursor
 --- @alias position "above" | "below"
 --- @param label_template string
 --- @param position position
 function M.add_log(label_template, position)
-  local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
+  local lang = get_lang(vim.bo.filetype)
   if not lang then
     vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
     return

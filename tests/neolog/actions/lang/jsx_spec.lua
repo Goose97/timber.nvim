@@ -1,7 +1,7 @@
 local neolog = require("neolog")
 local helper = require("tests.neolog.helper")
 
-describe("typescriptreact", function()
+describe("javascriptreact", function()
   before_each(function()
     neolog.setup()
   end)
@@ -36,7 +36,7 @@ describe("typescriptreact", function()
 
     helper.assert_scenario({
       input = input,
-      filetype = "typescriptreact",
+      filetype = "javascriptreact",
       action = function()
         actions.add_log("%identifier", "above")
       end,
@@ -68,7 +68,7 @@ describe("typescriptreact", function()
 
     helper.assert_scenario({
       input = input,
-      filetype = "typescriptreact",
+      filetype = "javascriptreact",
       action = function()
         actions.add_log("%identifier", "below")
       end,
@@ -103,7 +103,7 @@ describe("typescriptreact", function()
 
     helper.assert_scenario({
       input = input,
-      filetype = "typescriptreact",
+      filetype = "javascriptreact",
       action = function()
         actions.add_log("%identifier", "above")
       end,
@@ -144,7 +144,7 @@ describe("typescriptreact", function()
 
     helper.assert_scenario({
       input = input,
-      filetype = "typescriptreact",
+      filetype = "javascriptreact",
       action = function()
         vim.cmd("normal! vi{")
         actions.add_log("%identifier", "above")
@@ -184,7 +184,7 @@ describe("typescriptreact", function()
 
     helper.assert_scenario({
       input = input,
-      filetype = "typescriptreact",
+      filetype = "javascriptreact",
       action = function()
         vim.cmd("normal! Vj")
         actions.add_log("%identifier", "below")
