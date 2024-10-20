@@ -16,9 +16,11 @@ end
 ---   %identifier: the identifier text
 ---   %fn_name: the enclosing function name. If there's none, replaces with empty string
 ---   %line_number: the line_number number
+---   %insert_cursor: after adding the log statement, go to insert mode and place the cursor here.
+---     If there's multiple log statements, choose the first one
 ---@param log_template string
 ---@param log_target_node TSNode
----@return string
+---@return string, number?
 local function build_log_statement(log_template, log_target_node)
   local bufnr = vim.api.nvim_get_current_buf()
   local identifier_text = vim.treesitter.get_node_text(log_target_node, bufnr)
@@ -32,10 +34,15 @@ local function build_log_statement(log_template, log_target_node)
     log_template = string.gsub(log_template, "%%line_number", start_row + 1)
   end
 
-  return log_template
+  local insert_cursor_offset = string.find(log_template, "%%insert_cursor")
+  if insert_cursor_offset then
+    log_template = string.gsub(log_template, "%%insert_cursor", "")
+  end
+
+  return log_template, insert_cursor_offset
 end
 
----@param statements {content: string[], row: number, log_target: TSNode}[]
+---@param statements LogStatementInsert[]
 local function insert_log_statements(statements)
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -59,6 +66,28 @@ local function insert_log_statements(statements)
     indent_line_number(insert_line + 1)
 
     offset = offset + #statement.content
+  end
+end
+
+---Perform post-insert operations:
+---   1. Place the cursor at the insert_cursor placeholder if any
+---@param statements LogStatementInsert[]
+local function after_insert_log_statements(statements)
+  local has_insert_cursor_statement = utils.array_find(statements, function(statement)
+    return statement.insert_cursor_offset
+  end)
+
+  if has_insert_cursor_statement then
+    local row = has_insert_cursor_statement.row
+    local offset = has_insert_cursor_statement.insert_cursor_offset
+    -- We can't simply set the cursor because the line has been indented
+    -- We do it via Vim motion:
+    --   1. Jump to the insert line
+    --   2. Move to the first character
+    --   3. Move left by the offset
+    --   4. Go to insert mode
+    vim.cmd(string.format("normal! %dG^%dl", row + 1, offset - 1))
+    vim.cmd("startinsert")
   end
 end
 
@@ -217,6 +246,12 @@ local function pick_best_node(nodes, selection_range)
   return best_node or nodes[#nodes]
 end
 
+---@class LogStatementInsert
+---@field content string[] The log statement content
+---@field row number The (0-indexed) row number to insert
+---@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
+---@field log_target TSNode The log target node
+
 --- Add log statement for the current identifier at the cursor
 --- @alias position "above" | "below"
 --- @class AddLogOptions
@@ -239,6 +274,8 @@ function M.add_log(opts)
   local selection_range = utils.get_selection_range()
 
   local log_containers = query_log_target_container(lang, selection_range)
+
+  ---@type LogStatementInsert[]
   local to_insert = {}
 
   for _, container in ipairs(log_containers) do
@@ -271,15 +308,18 @@ function M.add_log(opts)
 
     -- Filter targets that intersect with the given range
     for _, log_target in ipairs(log_targets) do
+      local content, insert_cursor_offset = build_log_statement(log_template, log_target)
       table.insert(to_insert, {
-        content = { build_log_statement(log_template, log_target) },
+        content = { content },
         row = insert_row,
+        insert_cursor_offset = insert_cursor_offset,
         log_target = log_target,
       })
     end
   end
 
   insert_log_statements(to_insert)
+  after_insert_log_statements(to_insert)
 end
 
 -- Register the custom predicate
