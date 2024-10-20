@@ -1,5 +1,6 @@
 local neolog = require("neolog")
 local helper = require("tests.neolog.helper")
+local actions = require("neolog.actions")
 
 describe("javascriptreact", function()
   before_each(function()
@@ -11,8 +12,6 @@ describe("javascriptreact", function()
   end)
 
   it("supports jsx expression", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       function foo() {
         const a = 1
@@ -81,8 +80,6 @@ describe("javascriptreact", function()
   end)
 
   it("supports jsx attribute", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       function foo() {
         return (
@@ -115,8 +112,6 @@ describe("javascriptreact", function()
   end)
 
   it("supports visual selection log", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       function foo() {
         const a = 1

@@ -1,5 +1,6 @@
 local neolog = require("neolog")
 local helper = require("tests.neolog.helper")
+local actions = require("neolog.actions")
 
 describe("javascript", function()
   before_each(function()
@@ -11,8 +12,6 @@ describe("javascript", function()
   end)
 
   it("supports variable declaration", function()
-    local actions = require("neolog.actions")
-
     helper.assert_scenario({
       input = [[
         const fo|o = "bar"
@@ -29,8 +28,6 @@ describe("javascript", function()
   end)
 
   it("supports variable assignment", function()
-    local actions = require("neolog.actions")
-
     helper.assert_scenario({
       input = [[
         const foo = "bar"
@@ -49,8 +46,6 @@ describe("javascript", function()
   end)
 
   it("supports array destructuring assignment", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       const [fo|o] = ["bar"]
     ]]
@@ -72,8 +67,6 @@ describe("javascript", function()
 
   describe("supports object destructuring assignment", function()
     it("supports explicit syntax", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         const { foo: ba|r } = {}
       ]]
@@ -94,8 +87,6 @@ describe("javascript", function()
     end)
 
     it("supports shorthand syntax", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         const { fo|o } = {}
       ]]
@@ -118,8 +109,6 @@ describe("javascript", function()
 
   describe("supports function parameters", function()
     it("supports plain parameters", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         function foo(ba|r) {
           return null
@@ -166,8 +155,6 @@ describe("javascript", function()
     end)
 
     it("supports object destructuring parameters", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         function foo({ bar: ba|r }) {
           return null
@@ -192,8 +179,6 @@ describe("javascript", function()
     end)
 
     it("supports object destructuring shorthand parameters", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         function foo({ ba|r }) {
           return null
@@ -220,8 +205,6 @@ describe("javascript", function()
 
   describe("supports identifier nested in complex expressions", function()
     it("supports ternary operator", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         const foo =
           predicate ?
@@ -265,8 +248,6 @@ describe("javascript", function()
     end)
 
     it("supports object values", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         const foo = {
           bar: bar,
@@ -310,8 +291,6 @@ describe("javascript", function()
     end)
 
     it("supports function invocations", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         const foo = foo(bar, ba|z)
       ]]
@@ -348,8 +327,6 @@ describe("javascript", function()
 
   describe("supports try/catch statement", function()
     it("supports plain parameters", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         try {
           throw new Error("foo")
@@ -378,8 +355,6 @@ describe("javascript", function()
     end)
 
     it("supports object destructuring parameters", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         try {
           throw new Error("foo")
@@ -408,8 +383,6 @@ describe("javascript", function()
     end)
 
     it("supports object destructuring shorthand parameters", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         try {
           throw new Error("foo")
@@ -439,8 +412,6 @@ describe("javascript", function()
   end)
 
   it("supports if statement", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       if (fo|o > 1 && bar < baz) {
         return null
@@ -481,8 +452,6 @@ describe("javascript", function()
 
   describe("supports switch statement", function()
     it("supports switch head", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         switch (fo|o) {
           case bar:
@@ -532,8 +501,6 @@ describe("javascript", function()
     end)
 
     it("supports switch clause", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           switch (foo) {
@@ -593,8 +560,6 @@ describe("javascript", function()
 
   describe("supports for loop statement", function()
     it("supports normal for loop", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           for (let i = 0; i < fo|o; i++) {
@@ -619,8 +584,6 @@ describe("javascript", function()
     end)
 
     it("supports for of loop", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           for (let fo|o of bar) {
@@ -643,8 +606,6 @@ describe("javascript", function()
     end)
 
     it("supports for in loop", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           for (let fo|o in bar) {
@@ -669,8 +630,6 @@ describe("javascript", function()
 
   describe("supports import statements", function()
     it("supports plain imports", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           import f|oo from 'bar'
@@ -701,8 +660,6 @@ describe("javascript", function()
     end)
 
     it("supports named imports", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           import { fo|o } from 'bar'
@@ -733,8 +690,6 @@ describe("javascript", function()
     end)
 
     it("supports named alias imports", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           import { foo as b|ar } from 'bar'
@@ -764,8 +719,6 @@ describe("javascript", function()
     end)
 
     it("supports namespace imports", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           import * as f|oo from 'bar'
@@ -797,8 +750,6 @@ describe("javascript", function()
 
   describe("supports member access expression", function()
     it("supports dot member access", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           const foo = ba|r.bar
@@ -860,8 +811,6 @@ describe("javascript", function()
     end)
 
     it("supports bracket member access", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           const foo = ba|r["bar"]
@@ -925,8 +874,6 @@ describe("javascript", function()
 
   describe("supports visual selection log", function()
     it("supports variable declaration", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           const |a = b + c
@@ -1011,8 +958,6 @@ describe("javascript", function()
     end)
 
     it("supports function parameters", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           function foo(a, b|, { c: c1, d: d1 }) {
