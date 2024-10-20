@@ -22,7 +22,7 @@ describe("typescript", function()
       input = input,
       filetype = "typescript",
       action = function()
-        actions.add_log("%identifier", "below")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
       end,
       expected = expected,
     })
@@ -44,7 +44,7 @@ describe("typescript", function()
       input = input,
       filetype = "typescript",
       action = function()
-        actions.add_log("%identifier", "below")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
       end,
       expected = expected,
     })
@@ -67,7 +67,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -89,7 +89,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -117,7 +117,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -139,7 +139,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -165,7 +165,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -191,7 +191,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -217,7 +217,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -239,7 +239,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -277,7 +277,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected1,
       })
@@ -286,7 +286,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = expected2,
       })
@@ -322,7 +322,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected1,
       })
@@ -331,7 +331,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = expected2,
       })
@@ -358,7 +358,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected1,
       })
@@ -367,7 +367,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = expected2,
       })
@@ -399,7 +399,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -429,7 +429,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -459,7 +459,7 @@ describe("typescript", function()
         input = input,
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = expected,
       })
@@ -476,7 +476,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           import foo from 'bar'
@@ -490,7 +490,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = [[
           console.log("foo", foo)
@@ -508,7 +508,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           import { foo } from 'bar'
@@ -522,7 +522,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = [[
           console.log("foo", foo)
@@ -540,7 +540,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           import { foo as bar } from 'bar'
@@ -553,7 +553,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = [[
           console.log("bar", bar)
@@ -571,7 +571,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           import * as foo from 'bar'
@@ -584,7 +584,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = [[
           console.log("foo", foo)
@@ -604,7 +604,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const foo = bar.bar
@@ -619,7 +619,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const foo = bar.bar
@@ -634,7 +634,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! V")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const foo = bar.bar
@@ -653,7 +653,7 @@ describe("typescript", function()
         ]],
         filetype = "typescript",
         action = function()
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const foo = bar["bar"]
@@ -668,7 +668,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const foo = bar["bar"]
@@ -683,7 +683,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! V")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const foo = bar["bar"]
@@ -706,7 +706,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const a = b + c
@@ -725,7 +725,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = [[
           console.log("a", a)
@@ -744,7 +744,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! Vk")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           const a = b + c
@@ -766,7 +766,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! Vk")
-          actions.add_log("%identifier", "above")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
         end,
         expected = [[
           console.log("a", a)
@@ -793,7 +793,7 @@ describe("typescript", function()
         filetype = "typescript",
         action = function()
           vim.cmd("normal! vi)")
-          actions.add_log("%identifier", "below")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
         end,
         expected = [[
           function foo(a: string, b: string, { c: c1, d: d1 }: any) {

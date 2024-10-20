@@ -13,7 +13,7 @@ describe("neolog.actions", function()
         ]],
       filetype = "typescript",
       action = function()
-        actions.add_log("%identifier", "below")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
       end,
       expected = [[
           // Comment
@@ -33,7 +33,7 @@ describe("neolog.actions", function()
         ]],
       filetype = "typescript",
       action = function()
-        actions.add_log("%line_number", "below")
+        actions.add_log({ log_template = [[console.log("%line_number", %identifier)]], position = "below" })
       end,
       expected = [[
           // Comment

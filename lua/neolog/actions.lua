@@ -4,43 +4,6 @@ local M = {}
 
 local utils = require("neolog.utils")
 
---- Build the log label from template. Support special placeholers:
----   %identifier: the identifier text
----   %fn_name: the enclosing function name. If there's none, replaces with empty string
----   %line_number: the line_number number
----@param label_template string
----@param log_target_node TSNode
----@return string
-local function build_log_label(label_template, log_target_node)
-  local label = label_template
-
-  if string.find(label, "%%identifier") then
-    local bufnr = vim.api.nvim_get_current_buf()
-    local identifier_text = vim.treesitter.get_node_text(log_target_node, bufnr)
-    label = string.gsub(label, "%%identifier", identifier_text)
-  end
-
-  if string.find(label, "%%line_number") then
-    local start_row = log_target_node:start()
-    label = string.gsub(label, "%%line_number", start_row + 1)
-  end
-
-  return label
-end
-
----@param label_text string
----@param identifier_text string
----@return string
-local function build_log_statement(label_text, identifier_text)
-  local lang = vim.treesitter.language.get_lang(vim.bo.filetype)
-  local template = M.log_templates[lang]
-
-  template = string.gsub(template, "%%label", label_text)
-  template = string.gsub(template, "%%identifier", identifier_text)
-
-  return template
-end
-
 ---@param line_number number 1-indexed
 local function indent_line_number(line_number)
   local current_pos = vim.api.nvim_win_get_cursor(0)
@@ -49,14 +12,27 @@ local function indent_line_number(line_number)
   vim.api.nvim_win_set_cursor(0, current_pos)
 end
 
----@param label_template string
+--- Build the log statement from template. Support special placeholers:
+---   %identifier: the identifier text
+---   %fn_name: the enclosing function name. If there's none, replaces with empty string
+---   %line_number: the line_number number
+---@param log_template string
 ---@param log_target_node TSNode
 ---@return string
-local function build_log_statement_line(label_template, log_target_node)
+local function build_log_statement(log_template, log_target_node)
   local bufnr = vim.api.nvim_get_current_buf()
   local identifier_text = vim.treesitter.get_node_text(log_target_node, bufnr)
-  local log_label = build_log_label(label_template, log_target_node)
-  return build_log_statement(log_label, identifier_text)
+
+  if string.find(log_template, "%%identifier") then
+    log_template = string.gsub(log_template, "%%identifier", identifier_text)
+  end
+
+  if string.find(log_template, "%%line_number") then
+    local start_row = log_target_node:start()
+    log_template = string.gsub(log_template, "%%line_number", start_row + 1)
+  end
+
+  return log_template
 end
 
 ---@param statements {content: string[], row: number, log_target: TSNode}[]
@@ -243,17 +219,19 @@ end
 
 --- Add log statement for the current identifier at the cursor
 --- @alias position "above" | "below"
---- @param label_template string
---- @param position position
-function M.add_log(label_template, position)
+--- @class AddLogOptions
+--- @field log_template string
+--- @field position position
+function M.add_log(opts)
   local lang = get_lang(vim.bo.filetype)
   if not lang then
     vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
     return
   end
 
-  local template = M.log_templates[lang]
-  if not template then
+  local log_template = opts.log_template or M.log_templates[lang]
+  local position = opts.position
+  if not log_template then
     vim.notify(string.format("Log template for %s language is not found", lang), vim.log.levels.ERROR)
     return
   end
@@ -294,7 +272,7 @@ function M.add_log(label_template, position)
     -- Filter targets that intersect with the given range
     for _, log_target in ipairs(log_targets) do
       table.insert(to_insert, {
-        content = { build_log_statement_line(label_template, log_target) },
+        content = { build_log_statement(log_template, log_target) },
         row = insert_row,
         log_target = log_target,
       })

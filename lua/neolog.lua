@@ -6,11 +6,11 @@ local actions = require("neolog.actions")
 ---@field log_templates NeologLogTemplates
 local default_config = {
   log_templates = {
-    javascript = [[console.log("%label", %identifier)]],
-    typescript = [[console.log("%label", %identifier)]],
-    jsx = [[console.log("%label", %identifier)]],
-    tsx = [[console.log("%label", %identifier)]],
-    lua = [[print("%label", %identifier)]],
+    javascript = [[console.log("%identifier", %identifier)]],
+    typescript = [[console.log("%identifier", %identifier)]],
+    jsx = [[console.log("%identifier", %identifier)]],
+    tsx = [[console.log("%identifier", %identifier)]],
+    lua = [[print("%identifier", %identifier)]],
   },
 }
 

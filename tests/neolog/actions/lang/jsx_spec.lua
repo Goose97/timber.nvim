@@ -38,7 +38,7 @@ describe("javascriptreact", function()
       input = input,
       filetype = "javascriptreact",
       action = function()
-        actions.add_log("%identifier", "above")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
       end,
       expected = expected,
     })
@@ -70,7 +70,7 @@ describe("javascriptreact", function()
       input = input,
       filetype = "javascriptreact",
       action = function()
-        actions.add_log("%identifier", "below")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
       end,
       expected = expected,
     })
@@ -104,7 +104,7 @@ describe("javascriptreact", function()
       input = input,
       filetype = "javascriptreact",
       action = function()
-        actions.add_log("%identifier", "above")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
       end,
       expected = expected,
     })
@@ -146,7 +146,7 @@ describe("javascriptreact", function()
       filetype = "javascriptreact",
       action = function()
         vim.cmd("normal! vi{")
-        actions.add_log("%identifier", "above")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
       end,
       expected = expected,
     })
@@ -186,7 +186,7 @@ describe("javascriptreact", function()
       filetype = "javascriptreact",
       action = function()
         vim.cmd("normal! Vj")
-        actions.add_log("%identifier", "below")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
       end,
       expected = expected,
     })
