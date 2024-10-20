@@ -3,7 +3,11 @@ local helper = require("tests.neolog.helper")
 
 describe("javascriptreact", function()
   before_each(function()
-    neolog.setup()
+    neolog.setup({
+      log_templates = {
+        jsx = [[console.log("%identifier", %identifier)]],
+      },
+    })
   end)
 
   it("supports jsx expression", function()
@@ -38,7 +42,7 @@ describe("javascriptreact", function()
       input = input,
       filetype = "javascriptreact",
       action = function()
-        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
+        actions.add_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -70,7 +74,7 @@ describe("javascriptreact", function()
       input = input,
       filetype = "javascriptreact",
       action = function()
-        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        actions.add_log({ position = "below" })
       end,
       expected = expected,
     })
@@ -104,7 +108,7 @@ describe("javascriptreact", function()
       input = input,
       filetype = "javascriptreact",
       action = function()
-        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
+        actions.add_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -146,7 +150,7 @@ describe("javascriptreact", function()
       filetype = "javascriptreact",
       action = function()
         vim.cmd("normal! vi{")
-        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
+        actions.add_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -186,7 +190,7 @@ describe("javascriptreact", function()
       filetype = "javascriptreact",
       action = function()
         vim.cmd("normal! Vj")
-        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        actions.add_log({ position = "below" })
       end,
       expected = expected,
     })

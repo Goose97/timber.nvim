@@ -3,7 +3,11 @@ local helper = require("tests.neolog.helper")
 
 describe("lua", function()
   before_each(function()
-    neolog.setup()
+    neolog.setup({
+      log_templates = {
+        lua = [[print("%identifier", %identifier)]],
+      },
+    })
   end)
 
   it("supports variable declaration", function()
@@ -22,7 +26,7 @@ describe("lua", function()
       input = input,
       filetype = "lua",
       action = function()
-        actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+        actions.add_log({ position = "below" })
       end,
       expected = expected,
     })
@@ -36,7 +40,7 @@ describe("lua", function()
       input = input,
       filetype = "lua",
       action = function()
-        actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+        actions.add_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -60,7 +64,7 @@ describe("lua", function()
       input = input,
       filetype = "lua",
       action = function()
-        actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+        actions.add_log({ position = "below" })
       end,
       expected = expected,
     })
@@ -75,7 +79,7 @@ describe("lua", function()
       input = input,
       filetype = "lua",
       action = function()
-        actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+        actions.add_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -92,7 +96,7 @@ describe("lua", function()
       ]],
       filetype = "lua",
       action = function()
-        actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+        actions.add_log({ position = "below" })
       end,
       expected = [[
         function foo(bar)
@@ -115,7 +119,7 @@ describe("lua", function()
       filetype = "lua",
       action = function()
         vim.cmd("normal! Vj")
-        actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+        actions.add_log({ position = "above" })
       end,
       expected = [[
         local function foo(
@@ -161,7 +165,7 @@ describe("lua", function()
         input = input,
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = expected1,
       })
@@ -170,7 +174,7 @@ describe("lua", function()
         input = input,
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+          actions.add_log({ position = "above" })
         end,
         expected = expected2,
       })
@@ -185,7 +189,7 @@ describe("lua", function()
       ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
         local foo = { bar = bar }
@@ -199,7 +203,7 @@ describe("lua", function()
       ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
         local foo = { bar = bar }
@@ -216,7 +220,7 @@ describe("lua", function()
       ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
         foo(bar, baz)
@@ -230,7 +234,7 @@ describe("lua", function()
       ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+          actions.add_log({ position = "above" })
         end,
         expected = [[
         print("bar", bar)
@@ -245,7 +249,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! V")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
         foo(bar, baz)
@@ -266,7 +270,7 @@ describe("lua", function()
         ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar.bar
@@ -280,7 +284,7 @@ describe("lua", function()
         ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar.baz.baf
@@ -295,7 +299,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar.bar
@@ -310,7 +314,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! V")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar.bar
@@ -329,7 +333,7 @@ describe("lua", function()
         ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar["bar"]
@@ -343,7 +347,7 @@ describe("lua", function()
         ]],
         filetype = "lua",
         action = function()
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar["baz"]["baf"]
@@ -358,7 +362,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar["bar"]
@@ -373,7 +377,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! V")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local foo = bar["bar"]
@@ -395,7 +399,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local a = b + c
@@ -411,7 +415,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! v$")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+          actions.add_log({ position = "above" })
         end,
         expected = [[
           print("b", b)
@@ -428,7 +432,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! Vk")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           local a = b + c
@@ -450,7 +454,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! Vk")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "above" })
+          actions.add_log({ position = "above" })
         end,
         expected = [[
           print("a", a)
@@ -477,7 +481,7 @@ describe("lua", function()
         filetype = "lua",
         action = function()
           vim.cmd("normal! vi)")
-          actions.add_log({ log_template = [[print("%identifier", %identifier)]], position = "below" })
+          actions.add_log({ position = "below" })
         end,
         expected = [[
           function foo(a, b, c)
