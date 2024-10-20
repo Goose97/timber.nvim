@@ -342,7 +342,7 @@ describe("javascript", function()
     end)
   end)
 
-  describe("supports try/catch clause", function()
+  describe("supports try/catch statement", function()
     it("supports plain parameters", function()
       local actions = require("neolog.actions")
 
@@ -434,7 +434,7 @@ describe("javascript", function()
     end)
   end)
 
-  it("supports if clause", function()
+  it("supports if statement", function()
     local actions = require("neolog.actions")
 
     local input = [[
@@ -473,6 +473,118 @@ describe("javascript", function()
         }
       ]],
     })
+  end)
+
+  describe("supports switch statement", function()
+    it("supports switch head", function()
+      local actions = require("neolog.actions")
+
+      local input = [[
+        switch (fo|o) {
+          case bar:
+            break
+          case "baz":
+            break
+        }
+      ]]
+
+      -- This is invalid syntax but it's a delibarate choice
+      -- We want the switch statement log contaienr to be more granular
+      -- So instead of matching the whole switch statement, we match against switch head
+      -- and individual clauses
+      helper.assert_scenario({
+        input = input,
+        filetype = "javascript",
+        action = function()
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        end,
+        expected = [[
+          switch (foo) {
+            console.log("foo", foo)
+            case bar:
+              break
+            case "baz":
+              break
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = "javascript",
+        action = function()
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "above" })
+        end,
+        expected = [[
+          console.log("foo", foo)
+          switch (foo) {
+            case bar:
+              break
+            case "baz":
+              break
+          }
+        ]],
+      })
+    end)
+
+    it("supports switch clause", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          switch (foo) {
+            case ba|r:
+              break
+            case "baz":
+              break
+          }
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        end,
+        expected = [[
+          switch (foo) {
+            case bar:
+              console.log("bar", bar)
+              break
+            case "baz":
+              break
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          switch (foo) {
+            case (ba|r + baz): {
+              break
+            }
+            case "baz":
+              const baz = "baz"
+              break
+          }
+        ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! vi{V")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        end,
+        expected = [[
+          switch (foo) {
+            case (bar + baz): {
+              console.log("bar", bar)
+              console.log("baz", baz)
+              break
+            }
+            case "baz":
+              const baz = "baz"
+              console.log("baz", baz)
+              break
+          }
+        ]],
+      })
+    end)
   end)
 
   describe("supports import statements", function()
