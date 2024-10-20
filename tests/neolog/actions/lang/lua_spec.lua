@@ -162,6 +162,74 @@ describe("lua", function()
     })
   end)
 
+  describe("supports for loop statement", function()
+    it("supports for loop numeric", function()
+      helper.assert_scenario({
+        input = [[
+          for fo|o = 1, 10, 1 do
+            return nil
+          end
+        ]],
+        filetype = "lua",
+        action = function()
+          actions.add_log({ position = "below" })
+        end,
+        expected = [[
+          for foo = 1, 10, 1 do
+            print("foo", foo)
+            return nil
+          end
+        ]],
+      })
+    end)
+
+    it("supports for loop pairs", function()
+      helper.assert_scenario({
+        input = [[
+          for ke|y, value in pairs(t) do
+            return nil
+          end
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! V")
+          actions.add_log({ position = "below" })
+        end,
+        expected = [[
+          for key, value in pairs(t) do
+            print("key", key)
+            print("value", value)
+            print("t", t)
+            return nil
+          end
+        ]],
+      })
+    end)
+
+    it("supports for loop ipairs", function()
+      helper.assert_scenario({
+        input = [[
+          for ke|y, value in ipairs(t) do
+            return nil
+          end
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! V")
+          actions.add_log({ position = "below" })
+        end,
+        expected = [[
+          for key, value in ipairs(t) do
+            print("key", key)
+            print("value", value)
+            print("t", t)
+            return nil
+          end
+        ]],
+      })
+    end)
+  end)
+
   describe("supports identifier nested in complex expressions", function()
     it("supports ternary operator", function()
       local input = [[

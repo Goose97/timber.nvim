@@ -1,6 +1,4 @@
-([
-  (variable_declaration)
-]) @log_container
+(variable_declaration) @log_container
 
 ; Assignment without variable declaration
 (
