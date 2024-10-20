@@ -1,5 +1,5 @@
 ---@class NeologActions
---- @field log_templates NeologLogTemplates
+--- @field log_templates { [string]: NeologLogTemplates }
 local M = {}
 
 local utils = require("neolog.utils")
@@ -18,20 +18,33 @@ end
 ---   %line_number: the line_number number
 ---   %insert_cursor: after adding the log statement, go to insert mode and place the cursor here.
 ---     If there's multiple log statements, choose the first one
+---@alias handler (fun(): string) | string
 ---@param log_template string
----@param log_target_node TSNode
+---@param handlers {identifier: handler, line_number: handler}
 ---@return string, number?
-local function build_log_statement(log_template, log_target_node)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local identifier_text = vim.treesitter.get_node_text(log_target_node, bufnr)
+local function build_log_statement(log_template, handlers)
+  ---@type fun(string): string
+  local invoke_handler = function(handler_name)
+    local handler = handlers[handler_name]
+    if not handler then
+      error(string.format("No handler for %s", handler_name))
+    end
+
+    if type(handler) == "function" then
+      return handler()
+    else
+      return handler
+    end
+  end
 
   if string.find(log_template, "%%identifier") then
-    log_template = string.gsub(log_template, "%%identifier", identifier_text)
+    local replacement = invoke_handler("identifier")
+    log_template = string.gsub(log_template, "%%identifier", replacement)
   end
 
   if string.find(log_template, "%%line_number") then
-    local start_row = log_target_node:start()
-    log_template = string.gsub(log_template, "%%line_number", start_row + 1)
+    local replacement = invoke_handler("line_number")
+    log_template = string.gsub(log_template, "%%line_number", replacement)
   end
 
   local insert_cursor_offset = string.find(log_template, "%%insert_cursor")
@@ -246,31 +259,11 @@ local function pick_best_node(nodes, selection_range)
   return best_node or nodes[#nodes]
 end
 
----@class LogStatementInsert
----@field content string[] The log statement content
----@field row number The (0-indexed) row number to insert
----@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
----@field log_target TSNode The log target node
-
---- Add log statement for the current identifier at the cursor
---- @alias position "above" | "below"
---- @class AddLogOptions
---- @field log_template string
---- @field position position
-function M.add_log(opts)
-  local lang = get_lang(vim.bo.filetype)
-  if not lang then
-    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
-    return
-  end
-
-  local log_template = opts.log_template or M.log_templates[lang]
-  local position = opts.position
-  if not log_template then
-    vim.notify(string.format("Log template for %s language is not found", lang), vim.log.levels.ERROR)
-    return
-  end
-
+---@param log_template string
+---@param lang string
+---@param position LogPosition
+---@return LogStatementInsert[]
+local function build_capture_log_statements(log_template, lang, position)
   local selection_range = utils.get_selection_range()
 
   local log_containers = query_log_target_container(lang, selection_range)
@@ -296,7 +289,6 @@ function M.add_log(opts)
 
     log_targets = utils.array_filter(log_targets, function(node)
       return utils.ranges_intersect(selection_range, utils.get_ts_node_range(node))
-      -- return utils.range_include(selection_range, utils.get_ts_node_range(node))
     end)
 
     -- For each group, we pick the "biggest" node
@@ -308,7 +300,16 @@ function M.add_log(opts)
 
     -- Filter targets that intersect with the given range
     for _, log_target in ipairs(log_targets) do
-      local content, insert_cursor_offset = build_log_statement(log_template, log_target)
+      local content, insert_cursor_offset = build_log_statement(log_template, {
+        identifier = function()
+          local bufnr = vim.api.nvim_get_current_buf()
+          return vim.treesitter.get_node_text(log_target, bufnr)
+        end,
+        line_number = function()
+          return log_target:start() + 1
+        end,
+      })
+
       table.insert(to_insert, {
         content = { content },
         row = insert_row,
@@ -318,12 +319,78 @@ function M.add_log(opts)
     end
   end
 
+  return to_insert
+end
+
+---@param log_template string
+---@param position LogPosition
+---@return LogStatementInsert
+local function build_non_capture_log_statement(log_template, position)
+  local current_line = vim.fn.getpos(".")[2]
+  local insert_row = position == "above" and current_line or current_line + 1
+  local content, insert_cursor_offset = build_log_statement(log_template, {
+    line_number = tostring(insert_row),
+  })
+
+  return {
+    content = { content },
+    -- Minus cause the row is 0-indexed
+    row = insert_row - 1,
+    insert_cursor_offset = insert_cursor_offset,
+  }
+end
+
+---@class LogStatementInsert
+---@field content string[] The log statement content
+---@field row number The (0-indexed) row number to insert
+---@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
+---@field log_target TSNode? The log target node
+
+--- @alias LogPosition "above" | "below"
+
+--- Add log statement for the current identifier at the cursor
+--- @class AddLogOptions
+--- @field template string? Which template to use. Defaults to `default`
+--- @field position LogPosition
+function M.add_log(opts)
+  opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
+
+  local lang = get_lang(vim.bo.filetype)
+  if not lang then
+    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
+    return
+  end
+
+  local log_template_set = M.log_templates[opts.template]
+  if not log_template_set then
+    vim.notify(string.format("Log template '%s' is not found", opts.template), vim.log.levels.ERROR)
+    return
+  end
+
+  local log_template_lang = log_template_set[lang]
+  if not log_template_lang then
+    vim.notify(
+      string.format("Log template '%s' does not have '%s' language template", opts.template, lang),
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  -- There are two kinds of log statements:
+  --   1. Capture log statements: log statements that contain %identifier placeholder
+  --     We need to capture the log target in the selection range and replace it
+  --   2. Non-capture log statements: log statements that don't contain %identifier placeholder
+  --     We simply replace the placeholder text
+  local to_insert = log_template_lang:find("%%identifier")
+      and build_capture_log_statements(log_template_lang, lang, opts.position)
+    or { build_non_capture_log_statement(log_template_lang, opts.position) }
+
   insert_log_statements(to_insert)
   after_insert_log_statements(to_insert)
 end
 
 -- Register the custom predicate
----@param templates NeologLogTemplates
+---@param templates { [string]: NeologLogTemplates }
 function M.setup(templates)
   M.log_templates = templates
 
