@@ -28,6 +28,26 @@ describe("typescript", function()
     })
   end)
 
+  it("supports variable assignment", function()
+    local actions = require("neolog.actions")
+
+    helper.assert_scenario({
+      input = [[
+        const foo = "bar"
+        fo|o = "baz"
+      ]],
+      filetype = "typescript",
+      action = function()
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+      end,
+      expected = [[
+        const foo = "bar"
+        foo = "baz"
+        console.log("foo", foo)
+      ]],
+    })
+  end)
+
   it("supports array destructuring assignment", function()
     local actions = require("neolog.actions")
 

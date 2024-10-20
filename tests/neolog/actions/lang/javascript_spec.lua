@@ -9,22 +9,38 @@ describe("javascript", function()
   it("supports variable declaration", function()
     local actions = require("neolog.actions")
 
-    local input = [[
-      const fo|o = "bar"
-    ]]
-
-    local expected = [[
-      const foo = "bar"
-      console.log("foo", foo)
-    ]]
-
     helper.assert_scenario({
-      input = input,
+      input = [[
+        const fo|o = "bar"
+      ]],
       filetype = "javascript",
       action = function()
         actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
       end,
-      expected = expected,
+      expected = [[
+        const foo = "bar"
+        console.log("foo", foo)
+      ]],
+    })
+  end)
+
+  it("supports variable assignment", function()
+    local actions = require("neolog.actions")
+
+    helper.assert_scenario({
+      input = [[
+        const foo = "bar"
+        fo|o = "baz"
+      ]],
+      filetype = "javascript",
+      action = function()
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+      end,
+      expected = [[
+        const foo = "bar"
+        foo = "baz"
+        console.log("foo", foo)
+      ]],
     })
   end)
 
