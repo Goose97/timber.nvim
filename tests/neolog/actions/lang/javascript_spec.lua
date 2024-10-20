@@ -434,6 +434,47 @@ describe("javascript", function()
     end)
   end)
 
+  it("supports if clause", function()
+    local actions = require("neolog.actions")
+
+    local input = [[
+      if (fo|o > 1 && bar < baz) {
+        return null
+      }
+    ]]
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+      end,
+      expected = [[
+        if (foo > 1 && bar < baz) {
+          console.log("foo", foo)
+          return null
+        }
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! vi(")
+        actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+      end,
+      expected = [[
+        if (foo > 1 && bar < baz) {
+          console.log("foo", foo)
+          console.log("bar", bar)
+          console.log("baz", baz)
+          return null
+        }
+      ]],
+    })
+  end)
+
   describe("supports import statements", function()
     it("supports plain imports", function()
       local actions = require("neolog.actions")

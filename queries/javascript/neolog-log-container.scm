@@ -16,3 +16,8 @@
     body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
   )
 )
+
+(if_statement
+  condition: (parenthesized_expression) @log_container
+  consequence: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
