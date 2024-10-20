@@ -43,3 +43,23 @@
     )
   )
 )
+
+(for_statement
+  condition: (_) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
+
+(for_statement
+  increment: (_) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
+
+(for_in_statement
+  left: (_) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
+
+(for_in_statement
+  right: (_) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)

@@ -640,6 +640,82 @@ describe("typescript", function()
     end)
   end)
 
+  describe("supports for loop statement", function()
+    it("supports normal for loop", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          for (let i = 0; i < fo|o; i++) {
+            break
+          }
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        end,
+        expected = [[
+          for (let i = 0; i < foo; i++) {
+            console.log("i", i)
+            console.log("i", i)
+            console.log("foo", foo)
+            console.log("i", i)
+            break
+          }
+        ]],
+      })
+    end)
+
+    it("supports for of loop", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          for (let fo|o of bar) {
+            break
+          }
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        end,
+        expected = [[
+          for (let foo of bar) {
+            console.log("foo", foo)
+            console.log("bar", bar)
+            break
+          }
+        ]],
+      })
+    end)
+
+    it("supports for in loop", function()
+      local actions = require("neolog.actions")
+
+      helper.assert_scenario({
+        input = [[
+          for (let fo|o in bar) {
+            break
+          }
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.add_log({ log_template = [[console.log("%identifier", %identifier)]], position = "below" })
+        end,
+        expected = [[
+          for (let foo in bar) {
+            console.log("foo", foo)
+            console.log("bar", bar)
+            break
+          }
+        ]],
+      })
+    end)
+  end)
+
   describe("supports import statements", function()
     it("supports plain imports", function()
       local actions = require("neolog.actions")
