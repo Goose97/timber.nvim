@@ -1,5 +1,6 @@
 local neolog = require("neolog")
 local helper = require("tests.neolog.helper")
+local actions = require("neolog.actions")
 
 describe("lua", function()
   before_each(function()
@@ -11,8 +12,6 @@ describe("lua", function()
   end)
 
   it("supports variable declaration", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       local fo|o = "bar"
     ]]
@@ -47,8 +46,6 @@ describe("lua", function()
   end)
 
   it("supports variable assignment", function()
-    local actions = require("neolog.actions")
-
     local input = [[
       local foo = "bar"
       fo|o = "baz"
@@ -86,8 +83,6 @@ describe("lua", function()
   end)
 
   it("supports function parameters", function()
-    local actions = require("neolog.actions")
-
     helper.assert_scenario({
       input = [[
         function foo(ba|r)
@@ -134,10 +129,41 @@ describe("lua", function()
     })
   end)
 
+  it("supports if statement", function()
+    helper.assert_scenario({
+      input = [[
+        if not fo|o > 1 and bar < baz then
+          return nil
+        elseif bar then
+          return nil
+        elseif baz then
+          return nil
+        end
+      ]],
+      filetype = "lua",
+      action = function()
+        vim.cmd("normal! vap")
+        actions.add_log({ position = "below" })
+      end,
+      expected = [[
+        if not foo > 1 and bar < baz then
+          print("foo", foo)
+          print("bar", bar)
+          print("baz", baz)
+          return nil
+        elseif bar then
+          print("bar", bar)
+          return nil
+        elseif baz then
+          print("baz", baz)
+          return nil
+        end
+      ]],
+    })
+  end)
+
   describe("supports identifier nested in complex expressions", function()
     it("supports ternary operator", function()
-      local actions = require("neolog.actions")
-
       local input = [[
         local foo =
           predicate and
@@ -181,8 +207,6 @@ describe("lua", function()
     end)
 
     it("supports table constructor", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
         local foo = { bar = b|ar }
@@ -212,8 +236,6 @@ describe("lua", function()
     end)
 
     it("supports function invocations", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
         foo(ba|r, baz)
@@ -262,8 +284,6 @@ describe("lua", function()
 
   describe("supports member access expression", function()
     it("supports dot member access", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           local foo = ba|r.bar
@@ -325,8 +345,6 @@ describe("lua", function()
     end)
 
     it("supports bracket member access", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           local foo = ba|r["bar"]
@@ -390,8 +408,6 @@ describe("lua", function()
 
   describe("supports visual selection log", function()
     it("supports variable declaration", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           local a = b| + c
@@ -470,8 +486,6 @@ describe("lua", function()
     end)
 
     it("supports function parameters", function()
-      local actions = require("neolog.actions")
-
       helper.assert_scenario({
         input = [[
           function foo(a, b|, c)

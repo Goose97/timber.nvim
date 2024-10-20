@@ -15,3 +15,25 @@
   parameters: (parameters) @log_container
   body: (block) @logable_range
 )
+
+(if_statement
+  condition: (_) @log_container
+  consequence: (block) @logable_range
+)
+
+(if_statement
+  alternative: (elseif_statement
+    condition: (_) @log_container
+    consequence: (block) @logable_range
+  )
+)
+
+(for_statement
+  clause: (for_generic_clause (variable_list) @log_container)
+  body: (block) @logable_range
+)
+
+(for_statement
+  clause: (for_numeric_clause) @log_container
+  body: (block) @logable_range
+)
