@@ -12,7 +12,7 @@ describe("neolog", function()
       ]],
       filetype = "typescript",
       action = function()
-        actions.add_log({ position = "below" })
+        actions.insert_log({ position = "below" })
       end,
       expected = [[
         const foo = "bar"
@@ -26,7 +26,7 @@ describe("neolog", function()
       ]],
       filetype = "typescript",
       action = function()
-        actions.add_log({ template = "default", position = "below" })
+        actions.insert_log({ template = "default", position = "below" })
       end,
       expected = [[
         const foo = "bar"
@@ -48,7 +48,7 @@ describe("neolog", function()
       ]],
       filetype = "typescript",
       action = function()
-        actions.add_log({ template = "with_bar_123", position = "below" })
+        actions.insert_log({ template = "with_bar_123", position = "below" })
       end,
       expected = [[
         const foo = "bar"

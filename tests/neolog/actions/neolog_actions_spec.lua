@@ -24,7 +24,7 @@ describe("neolog.actions", function()
         ]],
       filetype = "javascript",
       action = function()
-        actions.add_log({ template = "testing", position = "below" })
+        actions.insert_log({ template = "testing", position = "below" })
       end,
       expected = [[
           // Comment
@@ -50,7 +50,7 @@ describe("neolog.actions", function()
         ]],
       filetype = "javascript",
       action = function()
-        actions.add_log({ template = "testing", position = "below" })
+        actions.insert_log({ template = "testing", position = "below" })
       end,
       expected = [[
           // Comment
@@ -77,7 +77,7 @@ describe("neolog.actions", function()
         ]],
         filetype = "javascript",
         action = function()
-          actions.add_log({
+          actions.insert_log({
             template = "testing",
             position = "below",
           })
@@ -125,7 +125,7 @@ describe("neolog.actions", function()
         filetype = "javascript",
         action = function()
           vim.cmd("normal! V")
-          actions.add_log({
+          actions.insert_log({
             template = "testing",
             position = "below",
           })
@@ -176,7 +176,7 @@ describe("neolog.actions", function()
         ]],
         filetype = "javascript",
         action = function()
-          actions.add_log({ template = "plain", position = "below" })
+          actions.insert_log({ template = "plain", position = "below" })
         end,
         expected = [[
           // Comment
@@ -201,7 +201,7 @@ describe("neolog.actions", function()
         ]],
         filetype = "javascript",
         action = function()
-          actions.add_log({ template = "plain", position = "above" })
+          actions.insert_log({ template = "plain", position = "above" })
         end,
         expected = [[
           // Comment

@@ -16,7 +16,7 @@ end
 ---   %identifier: the identifier text
 ---   %fn_name: the enclosing function name. If there's none, replaces with empty string
 ---   %line_number: the line_number number
----   %insert_cursor: after adding the log statement, go to insert mode and place the cursor here.
+---   %insert_cursor: after inserting the log statement, go to insert mode and place the cursor here.
 ---     If there's multiple log statements, choose the first one
 ---@alias handler (fun(): string) | string
 ---@param log_template string
@@ -348,11 +348,11 @@ end
 
 --- @alias LogPosition "above" | "below"
 
---- Add log statement for the current identifier at the cursor
---- @class AddLogOptions
+--- Insert log statement for the current identifier at the cursor
+--- @class InsertLogOptions
 --- @field template string? Which template to use. Defaults to `default`
 --- @field position LogPosition
-function M.add_log(opts)
+function M.insert_log(opts)
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
 
   local lang = get_lang(vim.bo.filetype)

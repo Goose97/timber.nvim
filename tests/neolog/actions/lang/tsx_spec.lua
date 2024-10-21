@@ -41,7 +41,7 @@ describe("typescriptreact", function()
       input = input,
       filetype = "typescriptreact",
       action = function()
-        actions.add_log({ position = "above" })
+        actions.insert_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -73,7 +73,7 @@ describe("typescriptreact", function()
       input = input,
       filetype = "typescriptreact",
       action = function()
-        actions.add_log({ position = "below" })
+        actions.insert_log({ position = "below" })
       end,
       expected = expected,
     })
@@ -105,7 +105,7 @@ describe("typescriptreact", function()
       input = input,
       filetype = "typescriptreact",
       action = function()
-        actions.add_log({ position = "above" })
+        actions.insert_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -145,7 +145,7 @@ describe("typescriptreact", function()
       filetype = "typescriptreact",
       action = function()
         vim.cmd("normal! vi{")
-        actions.add_log({ position = "above" })
+        actions.insert_log({ position = "above" })
       end,
       expected = expected,
     })
@@ -185,7 +185,7 @@ describe("typescriptreact", function()
       filetype = "typescriptreact",
       action = function()
         vim.cmd("normal! Vj")
-        actions.add_log({ position = "below" })
+        actions.insert_log({ position = "below" })
       end,
       expected = expected,
     })
