@@ -81,6 +81,7 @@ local function insert_log_statements(statements)
     vim.api.nvim_buf_set_lines(bufnr, insert_line, insert_line, false, statement.content)
     indent_line_number(insert_line + 1)
 
+    highlight.highlight_insert(insert_line)
     offset = offset + #statement.content
   end
 end
@@ -519,9 +520,7 @@ function M.add_log_targets_to_batch()
   end
 
   for _, target in ipairs(to_add) do
-    if highlight.on_add_to_batch then
-      highlight.highlight_add_to_batch(target)
-    end
+    highlight.highlight_add_to_batch(target)
   end
 end
 
