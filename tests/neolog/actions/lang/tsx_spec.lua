@@ -6,7 +6,9 @@ describe("typescriptreact", function()
   before_each(function()
     neolog.setup({
       log_templates = {
-        tsx = [[console.log("%identifier", %identifier)]],
+        default = {
+          tsx = [[console.log("%identifier", %identifier)]],
+        },
       },
     })
   end)

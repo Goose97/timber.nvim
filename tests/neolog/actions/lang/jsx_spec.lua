@@ -6,7 +6,9 @@ describe("javascriptreact", function()
   before_each(function()
     neolog.setup({
       log_templates = {
-        jsx = [[console.log("%identifier", %identifier)]],
+        default = {
+          jsx = [[console.log("%identifier", %identifier)]],
+        },
       },
     })
   end)

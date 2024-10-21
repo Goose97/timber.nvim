@@ -6,7 +6,9 @@ describe("javascript", function()
   before_each(function()
     neolog.setup({
       log_templates = {
-        javascript = [[console.log("%identifier", %identifier)]],
+        default = {
+          javascript = [[console.log("%identifier", %identifier)]],
+        },
       },
     })
   end)

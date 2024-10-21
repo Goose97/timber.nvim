@@ -6,7 +6,9 @@ describe("typescript", function()
   before_each(function()
     neolog.setup({
       log_templates = {
-        typescript = [[console.log("%identifier", %identifier)]],
+        default = {
+          typescript = [[console.log("%identifier", %identifier)]],
+        },
       },
     })
   end)

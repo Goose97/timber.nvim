@@ -6,7 +6,9 @@ describe("lua", function()
   before_each(function()
     neolog.setup({
       log_templates = {
-        lua = [[print("%identifier", %identifier)]],
+        default = {
+          lua = [[print("%identifier", %identifier)]],
+        },
       },
     })
   end)
