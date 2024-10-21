@@ -2,9 +2,10 @@ local assert = require("luassert")
 local spy = require("luassert.spy")
 local neolog = require("neolog")
 local actions = require("neolog.actions")
+local highlight = require("neolog.highlight")
 local helper = require("tests.neolog.helper")
 
-describe("neolog.actions single log", function()
+describe("neolog.actions.insert_log", function()
   before_each(function()
     neolog.setup()
   end)
@@ -206,7 +207,7 @@ describe("neolog.actions single log", function()
   end)
 end)
 
-describe("neolog.actions batch log", function()
+describe("neolog.actions.insert_batch_log", function()
   before_each(function()
     neolog.setup()
   end)
@@ -218,6 +219,19 @@ describe("neolog.actions batch log", function()
       const bar = "bar"
       const baz = "baz"
     ]]
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        actions.add_log_targets_to_batch()
+      end,
+      expected = function()
+        assert.are.same(1, actions.get_batch_size())
+        actions.clear_batch()
+        assert.are.same(0, actions.get_batch_size())
+      end,
+    })
 
     helper.assert_scenario({
       input = input,
@@ -297,5 +311,59 @@ describe("neolog.actions batch log", function()
     })
 
     notify_spy:clear()
+  end)
+end)
+
+describe("neolog.actions.add_log_targets_to_batch", function()
+  describe("on_add_to_batch is true", function()
+    it("calls highlight.highlight_add_to_batch for each target", function()
+      neolog.setup({ highlight = { on_add_to_batch = true } })
+
+      local highlight_spy = spy.on(highlight, "highlight_add_to_batch")
+
+      helper.assert_scenario({
+        input = [[
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! Vj")
+          actions.add_log_targets_to_batch()
+        end,
+        expected = function()
+          assert.spy(highlight_spy).was_called(2)
+        end,
+      })
+
+      highlight_spy:clear()
+    end)
+  end)
+
+  describe("on_add_to_batch is false", function()
+    it("DO NOT call highlight.highlight_add_to_batch for each target", function()
+      neolog.setup({ highlight = { on_add_to_batch = false } })
+
+      local highlight_spy = spy.on(highlight, "highlight_add_to_batch")
+
+      helper.assert_scenario({
+        input = [[
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! Vj")
+          actions.add_log_targets_to_batch()
+        end,
+        expected = function()
+          assert.spy(highlight_spy).was_called(0)
+        end,
+      })
+
+      highlight_spy:clear()
+    end)
   end)
 end)

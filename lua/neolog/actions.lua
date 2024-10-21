@@ -4,6 +4,7 @@
 --- @field batch TSNode[]
 local M = { log_templates = {}, batch_log_templates = {}, batch = {} }
 
+local highlight = require("neolog.highlight")
 local utils = require("neolog.utils")
 
 ---@param line_number number 1-indexed
@@ -515,6 +516,12 @@ function M.add_log_targets_to_batch()
 
   if mode == "v" or mode == "V" then
     vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+  end
+
+  for _, target in ipairs(to_add) do
+    if highlight.on_add_to_batch then
+      highlight.highlight_add_to_batch(target)
+    end
   end
 end
 
