@@ -1,7 +1,8 @@
-local neolog = require("neolog")
-local helper = require("tests.neolog.helper")
-local actions = require("neolog.actions")
 local assert = require("luassert")
+local spy = require("luassert.spy")
+local neolog = require("neolog")
+local actions = require("neolog.actions")
+local helper = require("tests.neolog.helper")
 
 describe("neolog.actions single log", function()
   before_each(function()
@@ -85,15 +86,7 @@ describe("neolog.actions single log", function()
           vim.api.nvim_feedkeys("abc", "n", false)
         end,
         expected = function()
-          local co = coroutine.running()
-
-          -- Neovim doesn't move into insert mode immediately
-          -- Sleep a bit
-          vim.defer_fn(function()
-            coroutine.resume(co)
-          end, 100)
-
-          coroutine.yield()
+          helper.wait(100)
 
           local mode = vim.api.nvim_get_mode().mode
           assert.are.same("i", mode)
@@ -226,34 +219,83 @@ describe("neolog.actions batch log", function()
       const baz = "baz"
     ]]
 
-    -- Default batch is `default`
     helper.assert_scenario({
       input = input,
       filetype = "javascript",
       action = function()
         vim.cmd("normal! V2j")
-        actions.add_log_target_to_batch()
+        actions.add_log_targets_to_batch()
       end,
       expected = function()
         assert.are.same(3, actions.get_batch_size())
+        actions.clear_batch()
+        assert.are.same(0, actions.get_batch_size())
       end,
     })
+  end)
+
+  it("exits Visual mode after adding targets to the batch", function()
+    local input = [[
+      // Comment
+      const fo|o = "foo"
+    ]]
 
     helper.assert_scenario({
       input = input,
       filetype = "javascript",
       action = function()
-        vim.cmd("normal! V2j")
-        actions.add_log_target_to_batch("testing")
+        vim.cmd("normal! V")
+        actions.add_log_targets_to_batch()
       end,
       expected = function()
-        assert.are.same(3, actions.get_batch_size("testing"))
+        helper.wait(100)
+
+        local mode = vim.api.nvim_get_mode().mode
+        assert.are.same("n", mode)
+      end,
+    })
+  end)
+
+  it("clears log batch after insert the log", function()
+    local input = [[
+      // Comment
+      const fo|o = "foo"
+    ]]
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! V")
+        actions.add_log_targets_to_batch()
+        actions.insert_batch_log()
+      end,
+      expected = function()
+        assert.are.same(0, actions.get_batch_size())
+      end,
+    })
+  end)
+
+  it("notifies when batch is empty", function()
+    local input = [[
+      // Comment
+      const fo|o = "foo"
+    ]]
+
+    local notify_spy = spy.on(vim, "notify")
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        actions.insert_batch_log()
+      end,
+      expected = function()
+        assert.spy(notify_spy).was_called(1)
+        assert.spy(notify_spy).was_called_with("Log batch is empty", vim.log.levels.INFO)
       end,
     })
 
-    actions.clear_batch()
-    assert.are.same(0, actions.get_batch_size())
-    actions.clear_batch("testing")
-    assert.are.same(0, actions.get_batch_size("testing"))
+    notify_spy:clear()
   end)
 end)

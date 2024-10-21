@@ -1,7 +1,8 @@
 ---@class NeologActions
 --- @field log_templates { [string]: NeologLogTemplates }
---- @field batches { [string]: TSNode[] }
-local M = { log_templates = {}, batches = {} }
+--- @field batch_log_templates { [string]: NeologLogTemplates }
+--- @field batch TSNode[]
+local M = { log_templates = {}, batch_log_templates = {}, batch = {} }
 
 local utils = require("neolog.utils")
 
@@ -23,7 +24,7 @@ end
 ---@param log_template string
 ---@param handlers {identifier: handler, line_number: handler}
 ---@return string, number?
-local function build_log_statement(log_template, handlers)
+local function resolve_template_placeholders(log_template, handlers)
   ---@type fun(string): string
   local invoke_handler = function(handler_name)
     local handler = handlers[handler_name]
@@ -311,7 +312,7 @@ local function build_capture_log_statements(log_template, lang, position)
       })[position]
 
     for _, log_target in ipairs(log_targets) do
-      local content, insert_cursor_offset = build_log_statement(log_template, {
+      local content, insert_cursor_offset = resolve_template_placeholders(log_template, {
         identifier = function()
           local bufnr = vim.api.nvim_get_current_buf()
           return vim.treesitter.get_node_text(log_target, bufnr)
@@ -339,7 +340,7 @@ end
 local function build_non_capture_log_statement(log_template, position)
   local current_line = vim.fn.getpos(".")[2]
   local insert_row = position == "above" and current_line or current_line + 1
-  local content, insert_cursor_offset = build_log_statement(log_template, {
+  local content, insert_cursor_offset = resolve_template_placeholders(log_template, {
     line_number = tostring(insert_row),
   })
 
@@ -351,16 +352,67 @@ local function build_non_capture_log_statement(log_template, position)
   }
 end
 
+---@param log_template string
+---@param batch TSNode[]
+---@return LogStatementInsert
+local function build_batch_log_statement(log_template, batch)
+  local result = log_template
+
+  -- First resolve %repeat placeholders
+  while true do
+    local start_pos, end_pos, repeat_item_template, separator = string.find(result, "%%repeat<(.-)><(.-)>")
+
+    if not start_pos then
+      break
+    end
+
+    local repeat_items = utils.array_map(batch, function(log_target)
+      return (
+        resolve_template_placeholders(repeat_item_template, {
+          identifier = function()
+            local bufnr = vim.api.nvim_get_current_buf()
+            return vim.treesitter.get_node_text(log_target, bufnr)
+          end,
+          line_number = function()
+            return tostring(log_target:start() + 1)
+          end,
+        })
+      )
+    end)
+
+    local repeat_items_str = table.concat(repeat_items, separator)
+
+    result = result:sub(1, start_pos - 1) .. repeat_items_str .. result:sub(end_pos + 1)
+  end
+
+  -- Then resolve the rest
+  local current_line = vim.fn.getpos(".")[2]
+  local result1, insert_cursor_offset = resolve_template_placeholders(result, {
+    identifier = function()
+      error("%identifier placeholder can only be used inside %repeat placeholder")
+    end,
+    line_number = tostring(current_line + 1),
+  })
+
+  return {
+    content = { result1 },
+    -- Insert at the line below 0-indexed
+    row = current_line,
+    insert_cursor_offset = insert_cursor_offset,
+  }
+end
+
 ---@param template_set string
+---@param kind "single" | "batch"
 ---@return string?, string?
-local function get_lang_log_template(template_set)
+local function get_lang_log_template(template_set, kind)
   local lang = get_lang(vim.bo.filetype)
   if not lang then
     vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
     return
   end
 
-  local log_template_set = M.log_templates[template_set]
+  local log_template_set = (kind == "single" and M.log_templates or M.batch_log_templates)[template_set]
   if not log_template_set then
     vim.notify(string.format("Log template '%s' is not found", template_set), vim.log.levels.ERROR)
     return
@@ -393,7 +445,8 @@ end
 --- @param opts InsertLogOptions
 function M.insert_log(opts)
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
-  local log_template_lang, lang = get_lang_log_template(opts.template)
+  local log_template_lang, lang = get_lang_log_template(opts.template, "single")
+
   if not log_template_lang or not lang then
     return
   end
@@ -411,21 +464,32 @@ function M.insert_log(opts)
   after_insert_log_statements(to_insert)
 end
 
----Add log target to the log batch
---- @class AddLogToBatchOptions
---- @field batch_name string? Which batch to add to. Defaults to `default`
-function M.add_log_target_to_batch(batch_name)
-  batch_name = batch_name or "default"
+--- Insert log statement for given batch
+--- @class InsertBatchLogOptions
+--- @field template string? Which template to use. Defaults to `default`
+--- @param opts InsertBatchLogOptions?
+function M.insert_batch_log(opts)
+  opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
 
-  -- local log_template_lang, lang = get_lang_log_template(opts.template)
-  -- if not log_template_lang or not lang then
-  --   return
-  -- end
-  --
-  -- if not log_template_lang:find("%%identifier") then
-  --   vim.notify("Batch log statements must include %identifier placeholder", vim.log.levels.ERROR)
-  --   return
-  -- end
+  if #M.batch == 0 then
+    vim.notify("Log batch is empty", vim.log.levels.INFO)
+    return
+  end
+
+  local log_template_lang, lang = get_lang_log_template(opts.template, "batch")
+  if not log_template_lang or not lang then
+    return
+  end
+
+  local to_insert = build_batch_log_statement(log_template_lang, M.batch)
+  insert_log_statements({ to_insert })
+  after_insert_log_statements({ to_insert })
+  M.clear_batch()
+end
+
+---Add log target to the log batch
+function M.add_log_targets_to_batch()
+  local mode = vim.api.nvim_get_mode().mode
 
   local lang = get_lang(vim.bo.filetype)
   if not lang then
@@ -447,37 +511,27 @@ function M.add_log_target_to_batch(batch_name)
     return result == "equal" and a[2] < b[2] or result == "before"
   end)
 
-  ---@type TSNode[]
-  local batch = M.batches[batch_name]
-  if not batch then
-    batch = {}
-    M.batches[batch_name] = batch
-  end
+  vim.list_extend(M.batch, to_add)
 
-  vim.list_extend(batch, to_add)
+  if mode == "v" or mode == "V" then
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+  end
 end
 
----@param batch_name string?
-function M.get_batch_size(batch_name)
-  batch_name = batch_name or "default"
-  local batch = M.batches[batch_name]
-  if not batch then
-    return 0
-  end
-
-  return #batch
+function M.get_batch_size()
+  return #M.batch
 end
 
----@param batch_name string?
-function M.clear_batch(batch_name)
-  batch_name = batch_name or "default"
-  M.batches[batch_name] = nil
+function M.clear_batch()
+  M.batch = {}
 end
 
 -- Register the custom predicate
 ---@param templates { [string]: NeologLogTemplates }
-function M.setup(templates)
+---@param batch_templates { [string]: NeologLogTemplates }
+function M.setup(templates, batch_templates)
   M.log_templates = templates
+  M.batch_log_templates = batch_templates
 
   -- Register the custom directive
   vim.treesitter.query.add_directive("adjust-range!", function(match, _, _, predicate, metadata)

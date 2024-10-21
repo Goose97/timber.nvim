@@ -92,4 +92,17 @@ function M.assert_scenario(scenario)
   end
 end
 
+---@param duration number in milliseconds
+function M.wait(duration)
+  local co = coroutine.running()
+
+  -- Neovim doesn't move into visual mode immediately
+  -- Sleep a bit
+  vim.defer_fn(function()
+    coroutine.resume(co)
+  end, duration)
+
+  coroutine.yield()
+end
+
 return M
