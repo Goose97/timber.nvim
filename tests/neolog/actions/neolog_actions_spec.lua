@@ -3,7 +3,7 @@ local helper = require("tests.neolog.helper")
 local actions = require("neolog.actions")
 local assert = require("luassert")
 
-describe("neolog.actions", function()
+describe("neolog.actions single log", function()
   before_each(function()
     neolog.setup()
   end)
@@ -210,5 +210,50 @@ describe("neolog.actions", function()
         ]],
       })
     end)
+  end)
+end)
+
+describe("neolog.actions batch log", function()
+  before_each(function()
+    neolog.setup()
+  end)
+
+  it("supports adding log targets to the batch, getting batch size, and clearing batch", function()
+    local input = [[
+      // Comment
+      const fo|o = "foo"
+      const bar = "bar"
+      const baz = "baz"
+    ]]
+
+    -- Default batch is `default`
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! V2j")
+        actions.add_log_target_to_batch()
+      end,
+      expected = function()
+        assert.are.same(3, actions.get_batch_size())
+      end,
+    })
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! V2j")
+        actions.add_log_target_to_batch("testing")
+      end,
+      expected = function()
+        assert.are.same(3, actions.get_batch_size("testing"))
+      end,
+    })
+
+    actions.clear_batch()
+    assert.are.same(0, actions.get_batch_size())
+    actions.clear_batch("testing")
+    assert.are.same(0, actions.get_batch_size("testing"))
   end)
 end)

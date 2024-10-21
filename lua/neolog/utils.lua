@@ -1,15 +1,5 @@
 local M = {}
 
-function M.array_includes(array, value)
-  for _, v in ipairs(array) do
-    if v == value then
-      return true
-    end
-  end
-
-  return false
-end
-
 function M.array_find(array, predicate)
   for i, v in ipairs(array) do
     if predicate(v, i) then

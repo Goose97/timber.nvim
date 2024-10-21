@@ -1,6 +1,7 @@
 ---@class NeologActions
 --- @field log_templates { [string]: NeologLogTemplates }
-local M = {}
+--- @field batches { [string]: TSNode[] }
+local M = { log_templates = {}, batches = {} }
 
 local utils = require("neolog.utils")
 
@@ -259,34 +260,18 @@ local function pick_best_node(nodes, selection_range)
   return best_node or nodes[#nodes]
 end
 
----@param log_template string
 ---@param lang string
----@param position LogPosition
----@return LogStatementInsert[]
-local function build_capture_log_statements(log_template, lang, position)
+---@return {log_container: TSNode, logable_range: logable_range?, log_targets: TSNode[]}[]
+local function capture_log_targets(lang)
   local selection_range = utils.get_selection_range()
-
   local log_containers = query_log_target_container(lang, selection_range)
 
-  ---@type LogStatementInsert[]
-  local to_insert = {}
+  local result = {}
 
-  for _, container in ipairs(log_containers) do
-    local log_targets = find_log_target(container.container, lang)
-    local logable_range = container.logable_range
+  for _, log_container in ipairs(log_containers) do
+    local log_targets = find_log_target(log_container.container, lang)
 
-    local insert_row
-
-    if logable_range then
-      insert_row = logable_range[1]
-    else
-      if position == "above" then
-        insert_row = container.container:start()
-      else
-        insert_row = container.container:end_() + 1
-      end
-    end
-
+    -- Filter targets that intersect with the given range
     log_targets = utils.array_filter(log_targets, function(node)
       return utils.ranges_intersect(selection_range, utils.get_ts_node_range(node))
     end)
@@ -298,7 +283,33 @@ local function build_capture_log_statements(log_template, lang, position)
       return pick_best_node(group, selection_range)
     end)
 
-    -- Filter targets that intersect with the given range
+    table.insert(result, {
+      log_container = log_container.container,
+      logable_range = log_container.logable_range,
+      log_targets = log_targets,
+    })
+  end
+
+  return result
+end
+
+---@param log_template string
+---@param lang string
+---@param position LogPosition
+---@return LogStatementInsert[]
+local function build_capture_log_statements(log_template, lang, position)
+  local to_insert = {}
+
+  for _, entry in ipairs(capture_log_targets(lang)) do
+    local log_targets = entry.log_targets
+    local log_container = entry.log_container
+    local logable_range = entry.logable_range
+    local insert_row = logable_range and logable_range[1]
+      or ({
+        above = log_container:start(),
+        below = log_container:end_() + 1,
+      })[position]
+
     for _, log_target in ipairs(log_targets) do
       local content, insert_cursor_offset = build_log_statement(log_template, {
         identifier = function()
@@ -306,7 +317,7 @@ local function build_capture_log_statements(log_template, lang, position)
           return vim.treesitter.get_node_text(log_target, bufnr)
         end,
         line_number = function()
-          return log_target:start() + 1
+          return tostring(log_target:start() + 1)
         end,
       })
 
@@ -340,6 +351,33 @@ local function build_non_capture_log_statement(log_template, position)
   }
 end
 
+---@param template_set string
+---@return string?, string?
+local function get_lang_log_template(template_set)
+  local lang = get_lang(vim.bo.filetype)
+  if not lang then
+    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
+    return
+  end
+
+  local log_template_set = M.log_templates[template_set]
+  if not log_template_set then
+    vim.notify(string.format("Log template '%s' is not found", template_set), vim.log.levels.ERROR)
+    return
+  end
+
+  local log_template_lang = log_template_set[lang]
+  if not log_template_lang then
+    vim.notify(
+      string.format("Log template '%s' does not have '%s' language template", template_set, lang),
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  return log_template_lang, lang
+end
+
 ---@class LogStatementInsert
 ---@field content string[] The log statement content
 ---@field row number The (0-indexed) row number to insert
@@ -352,27 +390,11 @@ end
 --- @class InsertLogOptions
 --- @field template string? Which template to use. Defaults to `default`
 --- @field position LogPosition
+--- @param opts InsertLogOptions
 function M.insert_log(opts)
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
-
-  local lang = get_lang(vim.bo.filetype)
-  if not lang then
-    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
-    return
-  end
-
-  local log_template_set = M.log_templates[opts.template]
-  if not log_template_set then
-    vim.notify(string.format("Log template '%s' is not found", opts.template), vim.log.levels.ERROR)
-    return
-  end
-
-  local log_template_lang = log_template_set[lang]
-  if not log_template_lang then
-    vim.notify(
-      string.format("Log template '%s' does not have '%s' language template", opts.template, lang),
-      vim.log.levels.ERROR
-    )
+  local log_template_lang, lang = get_lang_log_template(opts.template)
+  if not log_template_lang or not lang then
     return
   end
 
@@ -387,6 +409,69 @@ function M.insert_log(opts)
 
   insert_log_statements(to_insert)
   after_insert_log_statements(to_insert)
+end
+
+---Add log target to the log batch
+--- @class AddLogToBatchOptions
+--- @field batch_name string? Which batch to add to. Defaults to `default`
+function M.add_log_target_to_batch(batch_name)
+  batch_name = batch_name or "default"
+
+  -- local log_template_lang, lang = get_lang_log_template(opts.template)
+  -- if not log_template_lang or not lang then
+  --   return
+  -- end
+  --
+  -- if not log_template_lang:find("%%identifier") then
+  --   vim.notify("Batch log statements must include %identifier placeholder", vim.log.levels.ERROR)
+  --   return
+  -- end
+
+  local lang = get_lang(vim.bo.filetype)
+  if not lang then
+    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
+    return
+  end
+
+  ---@type TSNode[]
+  local to_add = {}
+
+  for _, entry in ipairs(capture_log_targets(lang)) do
+    for _, log_target in ipairs(entry.log_targets) do
+      table.insert(to_add, log_target)
+    end
+  end
+
+  to_add = utils.array_sort_with_index(to_add, function(a, b)
+    local result = utils.compare_ts_node_start(a[1], b[1])
+    return result == "equal" and a[2] < b[2] or result == "before"
+  end)
+
+  ---@type TSNode[]
+  local batch = M.batches[batch_name]
+  if not batch then
+    batch = {}
+    M.batches[batch_name] = batch
+  end
+
+  vim.list_extend(batch, to_add)
+end
+
+---@param batch_name string?
+function M.get_batch_size(batch_name)
+  batch_name = batch_name or "default"
+  local batch = M.batches[batch_name]
+  if not batch then
+    return 0
+  end
+
+  return #batch
+end
+
+---@param batch_name string?
+function M.clear_batch(batch_name)
+  batch_name = batch_name or "default"
+  M.batches[batch_name] = nil
 end
 
 -- Register the custom predicate
