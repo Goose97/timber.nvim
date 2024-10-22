@@ -1,4 +1,5 @@
 ; Outside of jsx element
+; Not function name in call expression foo(bar)
 (
   ([
     (identifier)
@@ -6,6 +7,7 @@
   ]) @log_target
   (#not-has-ancestor? @log_target jsx_element)
   (#not-has-ancestor? @log_target jsx_self_closing_element)
+  (#not-field-of-ancestor? @log_target call_expression function)
 )
 
 ; Inside of jsx expression but ignore opening and closing tags
