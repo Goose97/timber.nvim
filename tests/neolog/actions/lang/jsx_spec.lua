@@ -113,6 +113,68 @@ describe("javascriptreact", function()
     })
   end)
 
+  it("DOES NOT support jsx opening and closing tags", function()
+    helper.assert_scenario({
+      input = [[
+        const foo = <di|v>
+          <div>{b + 1}</div>
+        </div>
+      ]],
+      filetype = "javascriptreact",
+      action = function()
+        actions.insert_log({ position = "above" })
+      end,
+      expected = [[
+        const foo = <div>
+          <div>{b + 1}</div>
+        </div>
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        const foo = <div>
+          <div>{b + 1}</div>
+        </di|v>
+      ]],
+      filetype = "javascriptreact",
+      action = function()
+        actions.insert_log({ position = "above" })
+      end,
+      expected = [[
+        const foo = <div>
+          <div>{b + 1}</div>
+        </div>
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        const foo = <inp|ut />
+      ]],
+      filetype = "javascriptreact",
+      action = function()
+        actions.insert_log({ position = "above" })
+      end,
+      expected = [[
+        const foo = <input />
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        const foo = <Foo.B|ar>123</Foo.Bar>
+      ]],
+      filetype = "javascriptreact",
+      action = function()
+        actions.insert_log({ position = "above" })
+      end,
+      expected = [[
+        const foo = <Foo.Bar>123</Foo.Bar>
+      ]],
+    })
+  end)
+
   it("supports visual selection log", function()
     local input = [[
       function foo() {

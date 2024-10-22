@@ -19,3 +19,14 @@
   (#not-has-parent? @log_target jsx_closing_element)
   (#not-has-parent? @log_target jsx_self_closing_element)
 )
+
+(
+  ([
+    (member_expression)
+    (subscript_expression)
+  ]) @log_target
+  (#not-field-of-ancestor? @log_target call_expression function)
+  (#not-has-parent? @log_target jsx_opening_element)
+  (#not-has-parent? @log_target jsx_closing_element)
+  (#not-has-parent? @log_target jsx_self_closing_element)
+)
