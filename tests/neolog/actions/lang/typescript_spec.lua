@@ -849,6 +849,24 @@ describe("typescript single log", function()
       })
     end)
 
+    it("DOES NOT support dot member access as function in call expression", function()
+      helper.assert_scenario({
+        input = [[
+          const foo = bar.bar1.bar2(ba|z.baz1)
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = bar.bar1.bar2(baz.baz1)
+          console.log("foo", foo)
+          console.log("baz.baz1", baz.baz1)
+        ]],
+      })
+    end)
+
     it("supports bracket member access", function()
       helper.assert_scenario({
         input = [[
@@ -892,6 +910,24 @@ describe("typescript single log", function()
           const foo = bar["bar"]
           console.log("foo", foo)
           console.log("bar["bar"]", bar["bar"])
+        ]],
+      })
+    end)
+
+    it("DOES NOT support bracket member access as function in call expression", function()
+      helper.assert_scenario({
+        input = [[
+          const foo = bar["bar1"]["bar2"](ba|z.baz1)
+        ]],
+        filetype = "typescript",
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = bar["bar1"]["bar2"](baz.baz1)
+          console.log("foo", foo)
+          console.log("baz.baz1", baz.baz1)
         ]],
       })
     end)

@@ -540,26 +540,7 @@ function M.setup(templates, batch_templates)
   M.batch_log_templates = batch_templates
 
   -- Register the custom directive
-  vim.treesitter.query.add_directive("adjust-range!", function(match, _, _, predicate, metadata)
-    local capture_id = predicate[2]
-
-    ---@type TSNode
-    local node = match[capture_id]
-
-    -- Get the adjustment values from the predicate arguments
-    local start_adjust = tonumber(predicate[3]) or 0
-    local end_adjust = tonumber(predicate[4]) or 0
-
-    -- Get the original range
-    local start_row, start_col, end_row, end_col = node:range()
-
-    -- Adjust the range
-    local adjusted_start_row = math.max(0, start_row + start_adjust) -- Ensure we don't go below 0
-    local adjusted_end_row = math.max(adjusted_start_row, end_row + end_adjust) -- Ensure end is not before start
-
-    -- Store the adjusted range in metadata
-    metadata.adjusted_logable_range = { adjusted_start_row, start_col, adjusted_end_row, end_col }
-  end, { force = true })
+  require("neolog.treesitter")
 end
 
 return M
