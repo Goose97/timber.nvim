@@ -369,7 +369,12 @@ local function get_lang_log_template(template_set, kind)
   local log_template_lang = log_template_set[lang]
   if not log_template_lang then
     vim.notify(
-      string.format("Log template '%s' does not have '%s' language template", template_set, lang),
+      string.format(
+        "%s '%s' does not have '%s' language template",
+        kind == "single" and "Log template" or "Batch log template",
+        template_set,
+        lang
+      ),
       vim.log.levels.ERROR
     )
     return
