@@ -409,6 +409,36 @@ describe("neolog.actions.insert_batch_log", function()
 
     notify_spy:clear()
   end)
+
+  it("only supports %identifier inside %repeat", function()
+    neolog.setup({
+      batch_log_templates = {
+        default = {
+          javascript = [[console.log("%identifier", { %repeat<"%identifier": %identifier><, > })]],
+        },
+      },
+    })
+
+    local input = [[
+      const fo|o = "foo"
+      const bar = "bar"
+      const baz = "baz"
+    ]]
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! V2j")
+        actions.add_log_targets_to_batch()
+      end,
+      expected = function()
+        assert.has_error(function()
+          actions.insert_batch_log()
+        end, "%identifier placeholder can only be used inside %repeat placeholder")
+      end,
+    })
+  end)
 end)
 
 describe("neolog.actions.add_log_targets_to_batch", function()
