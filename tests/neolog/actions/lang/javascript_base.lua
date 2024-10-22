@@ -281,40 +281,6 @@ local run = function(language)
         expected = expected2,
       })
     end)
-
-    it("supports function invocations", function()
-      local input = [[
-        const foo = foo(bar, ba|z)
-      ]]
-
-      local expected1 = [[
-        const foo = foo(bar, baz)
-        console.log("baz", baz)
-      ]]
-
-      local expected2 = [[
-        console.log("baz", baz)
-        const foo = foo(bar, baz)
-      ]]
-
-      helper.assert_scenario({
-        input = input,
-        filetype = language,
-        action = function()
-          actions.insert_log({ position = "below" })
-        end,
-        expected = expected1,
-      })
-
-      helper.assert_scenario({
-        input = input,
-        filetype = language,
-        action = function()
-          actions.insert_log({ position = "above" })
-        end,
-        expected = expected2,
-      })
-    end)
   end)
 
   describe("supports try/catch statement", function()
@@ -438,6 +404,55 @@ local run = function(language)
           console.log("baz", baz)
           return null
         }
+      ]],
+    })
+  end)
+
+  it("supports arguments in call expression", function()
+    helper.assert_scenario({
+      input = [[
+        foo(ba|r, baz)
+      ]],
+      filetype = language,
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "below" })
+      end,
+      expected = [[
+        foo(bar, baz)
+        console.log("bar", bar)
+        console.log("baz", baz)
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        foo.bar(ba|z)
+      ]],
+      filetype = language,
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "below" })
+      end,
+      expected = [[
+        foo.bar(baz)
+        console.log("baz", baz)
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        foo.bar(ba|z).then(baf)
+      ]],
+      filetype = language,
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "below" })
+      end,
+      expected = [[
+        foo.bar(baz).then(baf)
+        console.log("baz", baz)
+        console.log("baf", baf)
       ]],
     })
   end)

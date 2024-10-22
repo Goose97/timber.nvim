@@ -32,3 +32,13 @@
   (#not-has-parent? @log_target jsx_closing_element)
   (#not-has-parent? @log_target jsx_self_closing_element)
 )
+
+(
+  ([
+    (identifier)
+    (member_expression)
+    (subscript_expression)
+  ]) @log_target
+  (#has-parent? @log_target arguments)
+)
+
