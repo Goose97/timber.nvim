@@ -206,6 +206,60 @@ describe("neolog.actions.insert_log", function()
     end)
   end)
 
+  describe("a log target belongs to multiple log containers", function()
+    it("chooses the deepest container", function()
+      neolog.setup({
+        log_templates = {
+          testing = {
+            javascript = [[console.log("Testing", %identifier)]],
+          },
+        },
+      })
+
+      local input = [[
+        const foo = {
+          bar: () => {
+            const ba|z = 123
+          },
+        };
+      ]]
+
+      helper.assert_scenario({
+        input = input,
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ template = "testing", position = "below" })
+        end,
+        expected = [[
+          const foo = {
+            bar: () => {
+              const baz = 123
+              console.log("Testing", baz)
+            },
+          };
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! Vap")
+          actions.insert_log({ template = "testing", position = "below" })
+        end,
+        expected = [[
+          const foo = {
+            bar: () => {
+              const baz = 123
+              console.log("Testing", baz)
+            },
+          };
+          console.log("Testing", foo)
+        ]],
+      })
+    end)
+  end)
+
   it("calls highlight.highlight_add_to_batch for each target", function()
     neolog.setup()
 

@@ -5,6 +5,7 @@
 local M = { log_templates = {}, batch_log_templates = {}, batch = {} }
 
 local highlight = require("neolog.highlight")
+local treesitter = require("neolog.actions.treesitter")
 local utils = require("neolog.utils")
 
 ---@param line_number number 1-indexed
@@ -108,71 +109,6 @@ local function after_insert_log_statements(statements)
   end
 end
 
----Query all target containers in the current buffer that intersect with the given range
----@alias logable_range {[1]: number, [2]: number}
----@param lang string
----@param range {[1]: number, [2]: number, [3]: number, [4]: number}
----@return {container: TSNode, logable_range: logable_range?}[]
-local function query_log_target_container(lang, range)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local parser = vim.treesitter.get_parser(bufnr, lang)
-  local tree = parser:parse()[1]
-  local root = tree:root()
-
-  local query = vim.treesitter.query.get(lang, "neolog-log-container")
-  if not query then
-    vim.notify(string.format("logging_framework doesn't support %s language", lang), vim.log.levels.ERROR)
-    return {}
-  end
-
-  local containers = {}
-
-  for _, match, metadata in query:iter_matches(root, bufnr, 0, -1) do
-    ---@type TSNode
-    local log_container = match[utils.get_key_by_value(query.captures, "log_container")]
-
-    if log_container and utils.ranges_intersect(utils.get_ts_node_range(log_container), range) then
-      ---@type TSNode?
-      local logable_range = match[utils.get_key_by_value(query.captures, "logable_range")]
-
-      local logable_range_col_range
-
-      if metadata.adjusted_logable_range then
-        logable_range_col_range = {
-          metadata.adjusted_logable_range[1],
-          metadata.adjusted_logable_range[3],
-        }
-      elseif logable_range then
-        logable_range_col_range = { logable_range:start(), logable_range:end_() }
-      end
-
-      table.insert(containers, { container = log_container, logable_range = logable_range_col_range })
-    end
-  end
-
-  return containers
-end
-
----Find all the log target nodes in the given container
----@param container TSNode
----@param lang string
----@return TSNode[]
-local function find_log_target(container, lang)
-  local query = vim.treesitter.query.get(lang, "neolog-log-target")
-  if not query then
-    vim.notify(string.format("logging_framework doesn't support %s language", lang), vim.log.levels.ERROR)
-    return {}
-  end
-
-  local bufnr = vim.api.nvim_get_current_buf()
-  local log_targets = {}
-  for _, node in query:iter_captures(container, bufnr, 0, -1) do
-    table.insert(log_targets, node)
-  end
-
-  return log_targets
-end
-
 ---@param filetype string
 ---@return string?
 local function get_lang(filetype)
@@ -206,7 +142,7 @@ local function group_overlapping_log_targets(log_targets)
       table.insert(current_group, log_target)
     else
       -- Check the current node with each node in the current group
-      -- If it matches any of the node, it belongs to the current group
+      -- If it intersects with any of the node, it belongs to the current group
       -- If it not, move it into a new group
       local insersect_any = utils.array_any(current_group, function(node)
         return utils.ranges_intersect(utils.get_ts_node_range(node), utils.get_ts_node_range(log_target))
@@ -267,15 +203,20 @@ end
 ---@return {log_container: TSNode, logable_range: logable_range?, log_targets: TSNode[]}[]
 local function capture_log_targets(lang)
   local selection_range = utils.get_selection_range()
-  local log_containers = query_log_target_container(lang, selection_range)
+  local log_containers = treesitter.query_log_target_container(lang, selection_range)
 
   local result = {}
 
-  for _, log_container in ipairs(log_containers) do
-    local log_targets = find_log_target(log_container.container, lang)
+  local log_target_grouped_by_container = treesitter.find_log_targets(
+    utils.array_map(log_containers, function(i)
+      return i.container
+    end),
+    lang
+  )
 
+  for _, entry in ipairs(log_target_grouped_by_container) do
     -- Filter targets that intersect with the given range
-    log_targets = utils.array_filter(log_targets, function(node)
+    local log_targets = utils.array_filter(entry.log_targets, function(node)
       return utils.ranges_intersect(selection_range, utils.get_ts_node_range(node))
     end)
 
@@ -285,6 +226,11 @@ local function capture_log_targets(lang)
     log_targets = utils.array_map(groups, function(group)
       return pick_best_node(group, selection_range)
     end)
+
+    local log_container = utils.array_find(log_containers, function(i)
+      return i.container == entry.container
+    end)
+    ---@cast log_container -nil
 
     table.insert(result, {
       log_container = log_container.container,
@@ -539,8 +485,7 @@ function M.setup(templates, batch_templates)
   M.log_templates = templates
   M.batch_log_templates = batch_templates
 
-  -- Register the custom directive
-  require("neolog.treesitter")
+  treesitter.setup()
 end
 
 return M

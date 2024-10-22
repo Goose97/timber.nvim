@@ -42,6 +42,31 @@ function M.array_any(array, predicate)
   return false
 end
 
+function M.array_group_by(array, key_function, value_function)
+  local result = {}
+
+  key_function = key_function or function(v)
+    return v
+  end
+
+  value_function = value_function or function(v)
+    return v
+  end
+
+  for _, v in ipairs(array) do
+    local key = key_function(v)
+    local value = value_function(v)
+
+    if result[key] then
+      table.insert(result[key], value)
+    else
+      result[key] = { value }
+    end
+  end
+
+  return result
+end
+
 function M.array_sort_with_index(array, comparator)
   local with_index = M.array_map(array, function(v, i)
     return { v, i }
@@ -52,6 +77,16 @@ function M.array_sort_with_index(array, comparator)
   return M.array_map(with_index, function(item)
     return item[1]
   end)
+end
+
+function M.table_values(t)
+  local result = {}
+
+  for _, v in pairs(t) do
+    table.insert(result, v)
+  end
+
+  return result
 end
 
 function M.get_key_by_value(t, value)
