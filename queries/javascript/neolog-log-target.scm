@@ -4,6 +4,8 @@
 (
   (identifier) @log_target
   (#not-field-of-ancestor? @log_target call_expression function)
+  ; This one is for typescript, but let's keep it here for now
+  (#not-field-of-ancestor? @log_target call_expression type_arguments)
 )
 
 (
