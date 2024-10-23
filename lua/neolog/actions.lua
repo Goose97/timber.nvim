@@ -9,27 +9,28 @@ local treesitter = require("neolog.actions.treesitter")
 local utils = require("neolog.utils")
 
 ---@class LogStatementInsert
----@field content string[] The log statement content
+---@field content string The log statement content
 ---@field row number The (0-indexed) row number to insert
 ---@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
 ---@field log_target TSNode? The log target node
 
 --- @alias LogPosition "above" | "below"
+--- @alias range {[1]: number, [2]: number, [3]: number, [4]: number}
+
+---@alias InsertLogArguments {[1]: InsertLogOptions, [2]: range, [3]: range}
 
 --- @class InsertLogReturn
 --- @field cursor_moved boolean Whether the cursor position was moved
 --- @field inserted_lines integer[] (0-indexed) row numbers of inserted lines
 
 ---@class NeologActionsState
----@field current_command_arguments {insert_log: InsertLogOptions?, insert_batch_log: InsertBatchLogOptions?}
+---@field current_command_arguments {insert_log: InsertLogArguments?, insert_batch_log: {[1]: InsertBatchLogOptions}?, add_log_targets_to_batch: {[1]: range}}
 ---@field current_selection_range {[1]: number, [2]: number, [3]: number, [4]: number}?
----@field last_command_return {insert_log: InsertLogReturn? }
 
 ---@type NeologActionsState
 local state = {
   current_command_arguments = {},
   current_selection_range = nil,
-  last_command_return = {},
 }
 
 ---@param callback string
@@ -40,10 +41,10 @@ local function make_dot_repeatable(callback)
   vim.go.operatorfunc = "v:lua.require'neolog.actions'." .. callback
 end
 
----@param line_number number 1-indexed
+---@param line_number number 0-indexed
 local function indent_line_number(line_number)
   local current_pos = vim.api.nvim_win_get_cursor(0)
-  vim.api.nvim_win_set_cursor(0, { line_number, 0 })
+  vim.api.nvim_win_set_cursor(0, { line_number + 1, 0 })
   vim.cmd("normal! ==")
   vim.api.nvim_win_set_cursor(0, current_pos)
 end
@@ -57,7 +58,7 @@ end
 ---@alias handler (fun(): string) | string
 ---@param log_template string
 ---@param handlers {identifier: handler, line_number: handler}
----@return string, number?
+---@return string
 local function resolve_template_placeholders(log_template, handlers)
   ---@type fun(string): string
   local invoke_handler = function(handler_name)
@@ -83,16 +84,12 @@ local function resolve_template_placeholders(log_template, handlers)
     log_template = string.gsub(log_template, "%%line_number", replacement)
   end
 
-  local insert_cursor_offset = string.find(log_template, "%%insert_cursor")
-  if insert_cursor_offset then
-    log_template = string.gsub(log_template, "%%insert_cursor", "")
-  end
-
-  return log_template, insert_cursor_offset
+  return log_template
 end
 
 ---@param statements LogStatementInsert[]
 ---@return integer[] (0-indexed) row numbers of inserted lines
+---@return {[1]: number, [2]: number}? insert_cursor_pos The insert cursor position trigger by %insert_cursor placeholder
 local function insert_log_statements(statements)
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -111,33 +108,46 @@ local function insert_log_statements(statements)
 
   -- Offset the row numbers
   local offset = 0
+  local insert_cursor_pos
 
   for _, statement in ipairs(statements) do
     local insert_line = statement.row + offset
-    vim.api.nvim_buf_set_lines(bufnr, insert_line, insert_line, false, statement.content)
-    indent_line_number(insert_line + 1)
+    local lines = utils.process_multiline_string(statement.content)
 
-    highlight.highlight_insert(insert_line)
-    offset = offset + #statement.content
+    for i, line in ipairs(lines) do
+      local insert_cursor_offset = string.find(line, "%%insert_cursor")
+      if insert_cursor_offset then
+        line = string.gsub(line, "%%insert_cursor", "")
+        lines[i] = line
 
-    table.insert(inserted_lines, insert_line)
+        if not insert_cursor_pos then
+          insert_cursor_pos = { insert_line + i - 1, insert_cursor_offset }
+        end
+      end
+    end
+
+    vim.api.nvim_buf_set_lines(bufnr, insert_line, insert_line, false, lines)
+
+    highlight.highlight_insert(insert_line, insert_line + #lines - 1)
+    offset = offset + #lines
+
+    for i = 0, #lines - 1, 1 do
+      indent_line_number(insert_line + i)
+      table.insert(inserted_lines, insert_line + i)
+    end
   end
 
-  return inserted_lines
+  return inserted_lines, insert_cursor_pos
 end
 
 ---Perform post-insert operations:
 ---   1. Place the cursor at the insert_cursor placeholder if any
----@param statements LogStatementInsert[]
----@return boolean Whether the cursor position was moved
-local function after_insert_log_statements(statements)
-  local has_insert_cursor_statement = utils.array_find(statements, function(statement)
-    return statement.insert_cursor_offset
-  end)
-
-  if has_insert_cursor_statement then
-    local row = has_insert_cursor_statement.row
-    local offset = has_insert_cursor_statement.insert_cursor_offset
+---   2. Move the cursor back to the original position if needed
+---@param insert_cursor_pos {[1]: number, [2]: number}?
+---@param original_cursor_position range?
+---@param inserted_lines integer[]
+local function after_insert_log_statements(insert_cursor_pos, original_cursor_position, inserted_lines)
+  if insert_cursor_pos then
     -- We can't simply set the cursor because the line has been indented
     -- We do it via Vim motion:
     --   1. Jump to the insert line
@@ -147,14 +157,28 @@ local function after_insert_log_statements(statements)
     -- We need to defer because the function is executed in normal mode by g@ operator
     -- After the function is executed, we can go to insert mode
     vim.defer_fn(function()
-      vim.cmd(string.format("normal! %dG^%dl", row + 1, offset - 1))
+      vim.cmd(string.format("normal! %dG^%dl", insert_cursor_pos[1] + 1, insert_cursor_pos[2] - 1))
       vim.cmd("startinsert")
     end, 0)
+  elseif original_cursor_position then
+    -- Move the cursor back to the original position
+    -- The inserted lines above the cursor shift the cursor position away. We need to account for that
+    local original_row = original_cursor_position[2] - 1
 
-    return true
+    for _, i in ipairs(inserted_lines) do
+      local need_to_shift = i <= original_row
+      if need_to_shift then
+        original_row = original_row + 1
+      end
+    end
+
+    original_cursor_position[2] = original_row + 1
+
+    -- This is a hack, we run the callback after the current command finish
+    vim.defer_fn(function()
+      vim.fn.setpos(".", original_cursor_position)
+    end, 0)
   end
-
-  return false
 end
 
 ---@param filetype string
@@ -234,10 +258,9 @@ local function pick_best_node(nodes, selection_range)
 end
 
 ---@param lang string
+---@param selection_range range?
 ---@return {log_container: TSNode, logable_range: logable_range?, log_targets: TSNode[]}[]
-local function capture_log_targets(lang)
-  -- If state.current_selection_range is nil, this means the user is dot repeating.
-  local selection_range = state.current_selection_range or utils.get_selection_range()
+local function capture_log_targets(lang, selection_range)
   local log_containers = treesitter.query_log_target_container(lang, selection_range)
 
   local result = {}
@@ -280,11 +303,12 @@ end
 ---@param log_template string
 ---@param lang string
 ---@param position LogPosition
+---@param selection_range range
 ---@return LogStatementInsert[]
-local function build_capture_log_statements(log_template, lang, position)
+local function build_capture_log_statements(log_template, lang, position, selection_range)
   local to_insert = {}
 
-  for _, entry in ipairs(capture_log_targets(lang)) do
+  for _, entry in ipairs(capture_log_targets(lang, selection_range)) do
     local log_targets = entry.log_targets
     local log_container = entry.log_container
     local logable_range = entry.logable_range
@@ -295,7 +319,7 @@ local function build_capture_log_statements(log_template, lang, position)
       })[position]
 
     for _, log_target in ipairs(log_targets) do
-      local content, insert_cursor_offset = resolve_template_placeholders(log_template, {
+      local content = resolve_template_placeholders(log_template, {
         identifier = function()
           local bufnr = vim.api.nvim_get_current_buf()
           return vim.treesitter.get_node_text(log_target, bufnr)
@@ -306,9 +330,9 @@ local function build_capture_log_statements(log_template, lang, position)
       })
 
       table.insert(to_insert, {
-        content = { content },
+        content = content,
         row = insert_row,
-        insert_cursor_offset = insert_cursor_offset,
+        insert_cursor_offset = nil,
         log_target = log_target,
       })
     end
@@ -323,15 +347,15 @@ end
 local function build_non_capture_log_statement(log_template, position)
   local current_line = vim.fn.getpos(".")[2]
   local insert_row = position == "above" and current_line or current_line + 1
-  local content, insert_cursor_offset = resolve_template_placeholders(log_template, {
+  local content = resolve_template_placeholders(log_template, {
     line_number = tostring(insert_row),
   })
 
   return {
-    content = { content },
+    content = content,
     -- Minus cause the row is 0-indexed
     row = insert_row - 1,
-    insert_cursor_offset = insert_cursor_offset,
+    insert_cursor_offset = nil,
   }
 end
 
@@ -370,7 +394,7 @@ local function build_batch_log_statement(log_template, batch)
 
   -- Then resolve the rest
   local current_line = vim.fn.getpos(".")[2]
-  local result1, insert_cursor_offset = resolve_template_placeholders(result, {
+  local result1 = resolve_template_placeholders(result, {
     identifier = function()
       vim.notify("neolog: Cannot use %identifier placeholder outside %repeat placeholder", vim.log.levels.ERROR)
       return "%identifier"
@@ -379,10 +403,10 @@ local function build_batch_log_statement(log_template, batch)
   })
 
   return {
-    content = { result1 },
+    content = result1,
     -- Insert at the line below 0-indexed
     row = current_line,
-    insert_cursor_offset = insert_cursor_offset,
+    insert_cursor_offset = nil,
   }
 end
 
@@ -420,7 +444,10 @@ local function get_lang_log_template(template_set, kind)
 end
 
 function M.__insert_log(_)
-  local opts = state.current_command_arguments.insert_log
+  local opts = state.current_command_arguments.insert_log[1]
+  -- If selection_range or original_cursor_position are nil, it means the user is dot repeating
+  local selection_range = state.current_command_arguments.insert_log[2] or utils.get_selection_range()
+  local original_cursor_position = state.current_command_arguments.insert_log[3] or vim.fn.getpos(".")
 
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
   local log_template_lang, lang = get_lang_log_template(opts.template, "single")
@@ -435,18 +462,15 @@ function M.__insert_log(_)
   --   2. Non-capture log statements: log statements that don't contain %identifier placeholder
   --     We simply replace the placeholder text
   local to_insert = log_template_lang:find("%%identifier")
-      and build_capture_log_statements(log_template_lang, lang, opts.position)
+      and build_capture_log_statements(log_template_lang, lang, opts.position, selection_range)
     or { build_non_capture_log_statement(log_template_lang, opts.position) }
 
-  local inserted_lines = insert_log_statements(to_insert)
-  local cursor_moved = after_insert_log_statements(to_insert)
+  local inserted_lines, insert_cursor_pos = insert_log_statements(to_insert)
+  after_insert_log_statements(insert_cursor_pos, original_cursor_position, inserted_lines)
 
+  -- Prepare for dot repeat. We only preserve the opts
   make_dot_repeatable("__insert_log")
-
-  state.last_command_return.insert_log = {
-    cursor_moved = cursor_moved,
-    inserted_lines = inserted_lines,
-  }
+  state.current_command_arguments.insert_log = { opts, nil, nil }
 end
 
 --- Insert log statement for the current identifier at the cursor
@@ -455,38 +479,16 @@ end
 --- @field position LogPosition
 --- @param opts InsertLogOptions
 function M.insert_log(opts)
-  state.current_command_arguments.insert_log = opts
-  state.current_selection_range = utils.get_selection_range()
-
   local cursor_position = vim.fn.getpos(".")
+  state.current_command_arguments.insert_log = { opts, utils.get_selection_range(), cursor_position }
+
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"
   vim.cmd("normal! g@l")
-
-  local result = state.last_command_return.insert_log
-  ---@cast result -nil
-
-  -- If log template use %insert_cursor, don't restore the cursor position
-  if not result.cursor_moved then
-    -- The inserted lines above the cursor shift the cursor position away. We need to account for that
-    local original_row = cursor_position[2] - 1
-
-    for _, i in ipairs(result.inserted_lines) do
-      local need_to_shift = i <= original_row
-      if need_to_shift then
-        original_row = original_row + 1
-      end
-    end
-
-    cursor_position[2] = original_row + 1
-    vim.fn.setpos(".", cursor_position)
-  end
-
-  state.last_command_return.insert_log = nil
-  state.current_selection_range = nil
 end
 
 function M.__insert_batch_log(_)
-  local opts = state.current_command_arguments.insert_batch_log
+  local opts = state.current_command_arguments.insert_batch_log[1]
+  -- nil means the user is dot repeating
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
 
   if #M.batch == 0 then
@@ -500,8 +502,8 @@ function M.__insert_batch_log(_)
   end
 
   local to_insert = build_batch_log_statement(log_template_lang, M.batch)
-  insert_log_statements({ to_insert })
-  after_insert_log_statements({ to_insert })
+  local inserted_lines = insert_log_statements({ to_insert })
+  after_insert_log_statements({ to_insert }, nil, inserted_lines)
   M.clear_batch()
 
   make_dot_repeatable("__insert_batch_log")
@@ -513,12 +515,15 @@ end
 --- @param opts InsertBatchLogOptions?
 function M.insert_batch_log(opts)
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_batch_log"
-  state.current_command_arguments.insert_batch_log = opts
+  state.current_command_arguments.insert_batch_log = { opts }
   vim.cmd("normal! g@l")
 end
 
 ---Add log target to the log batch
 function M.__add_log_targets_to_batch()
+  --- nil means the user is dot repeating
+  local selection_range = state.current_command_arguments.add_log_targets_to_batch[1] or utils.get_selection_range()
+
   local lang = get_lang(vim.bo.filetype)
   if not lang then
     vim.notify("neolog: Treesitter cannot determine language for current buffer", vim.log.levels.ERROR)
@@ -528,7 +533,7 @@ function M.__add_log_targets_to_batch()
   ---@type TSNode[]
   local to_add = {}
 
-  for _, entry in ipairs(capture_log_targets(lang)) do
+  for _, entry in ipairs(capture_log_targets(lang, selection_range)) do
     for _, log_target in ipairs(entry.log_targets) do
       table.insert(to_add, log_target)
     end
@@ -542,18 +547,18 @@ function M.__add_log_targets_to_batch()
     highlight.highlight_add_to_batch(target)
   end
 
-  make_dot_repeatable("add_log_targets_to_batch")
+  -- Prepare for dot repeat. Reset the arguments
+  make_dot_repeatable("__add_log_targets_to_batch")
+  state.current_command_arguments.add_log_targets_to_batch = { nil, nil }
 end
 
 function M.add_log_targets_to_batch()
-  state.current_selection_range = utils.get_selection_range()
-
   local cursor_position = vim.fn.getpos(".")
+  state.current_command_arguments.add_log_targets_to_batch = { utils.get_selection_range() }
+
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__add_log_targets_to_batch"
   vim.cmd("normal! g@l")
   vim.fn.setpos(".", cursor_position)
-
-  state.current_selection_range = nil
 end
 
 function M.get_batch_size()

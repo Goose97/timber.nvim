@@ -32,8 +32,9 @@ function M.highlight_add_to_batch(log_target)
   )
 end
 
----@param line_number number 0-indexed
-function M.highlight_insert(line_number)
+---@param start_line_number number 0-indexed
+---@param end_line_number number 0-indexed
+function M.highlight_insert(start_line_number, end_line_number)
   if not M.on_insert then
     return
   end
@@ -42,8 +43,8 @@ function M.highlight_insert(line_number)
     0,
     M.hl_insert,
     "NeologInsert",
-    { line_number, 0 },
-    { line_number, 0 },
+    { start_line_number, 0 },
+    { end_line_number, 0 },
     { regtype = "V", inclusive = false }
   )
 

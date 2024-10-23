@@ -263,4 +263,27 @@ function M.compare_ts_node_end(node_a, node_b)
   end
 end
 
+---Trim the redundant whitespaces from the input lines and calculate indentation
+---@param input string
+---@return string[]
+function M.process_multiline_string(input)
+  -- Remove trailing whitespaces
+  input = input:gsub("%s+$", "")
+  local lines = vim.split(input, "\n", { trimempty = true })
+  local smallest_indent
+
+  for _, line in ipairs(lines) do
+    -- Count the number of leading whitespaces
+    -- Don't consider indent of empty lines
+    local leading_whitespaces = line:match("^%s*")
+    if #leading_whitespaces ~= line:len() then
+      smallest_indent = smallest_indent and math.min(smallest_indent, #leading_whitespaces) or #leading_whitespaces
+    end
+  end
+
+  return M.array_map(lines, function(line)
+    return line:sub(smallest_indent + 1)
+  end)
+end
+
 return M

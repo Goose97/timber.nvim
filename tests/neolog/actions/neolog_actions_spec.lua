@@ -63,50 +63,104 @@ describe("neolog.actions.insert_log", function()
   end)
 
   describe("supports %insert_cursor in log template", function()
-    it("move the the %insert_cursor placeholder and go to insert mode after inserting the log", function()
-      neolog.setup({
-        log_templates = {
-          testing = {
-            javascript = [[console.log("%identifier %insert_cursor", %identifier)]],
+    describe("move the the %insert_cursor placeholder and go to insert mode after inserting the log", function()
+      it("supports single line template", function()
+        neolog.setup({
+          log_templates = {
+            testing = {
+              javascript = [[console.log("%identifier %insert_cursor", %identifier)]],
+            },
           },
-        },
-      })
+        })
 
-      helper.assert_scenario({
-        input = [[
+        helper.assert_scenario({
+          input = [[
           const fo|o = "bar"
           const bar = "foo"
         ]],
-        filetype = "javascript",
-        action = function()
-          actions.insert_log({
-            template = "testing",
-            position = "below",
-          })
+          filetype = "javascript",
+          action = function()
+            actions.insert_log({
+              template = "testing",
+              position = "below",
+            })
 
-          vim.defer_fn(function()
-            vim.api.nvim_feedkeys("abc", "n", false)
-          end, 0)
-        end,
-        expected = function()
-          helper.wait(20)
+            vim.defer_fn(function()
+              vim.api.nvim_feedkeys("abc", "n", false)
+            end, 0)
+          end,
+          expected = function()
+            helper.wait(20)
 
-          local mode = vim.api.nvim_get_mode().mode
-          assert.are.same("i", mode)
+            local mode = vim.api.nvim_get_mode().mode
+            assert.are.same("i", mode)
 
-          local output = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-          local expected = {
-            [[const foo = "bar"]],
-            [[console.log("foo abc", foo)]],
-            [[const bar = "foo"]],
-          }
-          assert.are.same(expected, output)
-        end,
-      })
+            local output = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+            local expected = {
+              [[const foo = "bar"]],
+              [[console.log("foo abc", foo)]],
+              [[const bar = "foo"]],
+            }
+            assert.are.same(expected, output)
+          end,
+        })
 
-      -- Wait for Neovim to actually stop insert mode
-      vim.cmd("stopinsert")
-      helper.wait(20)
+        -- Wait for Neovim to actually stop insert mode
+        vim.cmd("stopinsert")
+        helper.wait(20)
+      end)
+
+      it("supports single line template", function()
+        neolog.setup({
+          log_templates = {
+            testing = {
+              javascript = [[
+                // Comment above
+                console.log("%identifier %insert_cursor", %identifier)
+                // Comment below
+              ]],
+            },
+          },
+        })
+
+        helper.assert_scenario({
+          input = [[
+            const fo|o = "bar"
+            const bar = "foo"
+          ]],
+          filetype = "javascript",
+          action = function()
+            actions.insert_log({
+              template = "testing",
+              position = "below",
+            })
+
+            vim.defer_fn(function()
+              vim.api.nvim_feedkeys("abc", "n", false)
+            end, 0)
+          end,
+          expected = function()
+            helper.wait(20)
+
+            local mode = vim.api.nvim_get_mode().mode
+            assert.are.same("i", mode)
+
+            local output = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+            local expected = {
+              [[const foo = "bar"]],
+              [[// Comment above]],
+              [[console.log("foo abc", foo)]],
+              [[// Comment below]],
+              [[const bar = "foo"]],
+            }
+            assert.are.same(expected, output)
+          end,
+        })
+
+        -- Wait for Neovim to actually stop insert mode
+        vim.cmd("stopinsert")
+        helper.wait(20)
+      end)
     end)
 
     it("chooses the first statement if there are multiple", function()
@@ -150,11 +204,11 @@ describe("neolog.actions.insert_log", function()
           assert.are.same(expected, output)
         end,
       })
-    end)
 
-    -- Wait for Neovim to actually stop insert mode
-    vim.cmd("stopinsert")
-    helper.wait(20)
+      -- Wait for Neovim to actually stop insert mode
+      vim.cmd("stopinsert")
+      helper.wait(20)
+    end)
   end)
 
   describe("supports log template that doesn't contain %identifier", function()
@@ -264,7 +318,7 @@ describe("neolog.actions.insert_log", function()
     end)
   end)
 
-  it("calls highlight.highlight_add_to_batch for each target", function()
+  it("calls highlight.highlight_insert for inserted line", function()
     neolog.setup()
 
     local highlight_spy = spy.on(highlight, "highlight_insert")
@@ -280,7 +334,7 @@ describe("neolog.actions.insert_log", function()
       end,
       expected = function()
         assert.spy(highlight_spy).was_called(1)
-        assert.spy(highlight_spy).was_called_with(2)
+        assert.spy(highlight_spy).was_called_with(2, 2)
       end,
     })
 
@@ -298,9 +352,9 @@ describe("neolog.actions.insert_log", function()
       end,
       expected = function()
         assert.spy(highlight_spy).was_called(3)
-        assert.spy(highlight_spy).was_called_with(2)
-        assert.spy(highlight_spy).was_called_with(3)
-        assert.spy(highlight_spy).was_called_with(4)
+        assert.spy(highlight_spy).was_called_with(2, 2)
+        assert.spy(highlight_spy).was_called_with(3, 3)
+        assert.spy(highlight_spy).was_called_with(4, 4)
       end,
     })
 
@@ -380,21 +434,101 @@ describe("neolog.actions.insert_log", function()
     end)
   end)
 
-  it("preserves the cursor position after inserting", function()
-    helper.assert_scenario({
-      input = [[
-        // Comment
-        const fo|o = "foo"
-        const bar = "bar"
-      ]],
-      filetype = "javascript",
-      action = function()
-        actions.insert_log({ position = "below" })
-      end,
-      expected = function()
-        local cursor_position = vim.fn.getpos(".")
-        assert.are.same({ 2, 8 }, vim.list_slice(cursor_position, 2, 3))
-      end,
+  describe("preserves the cursor position after inserting", function()
+    it("supports single line template", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = function()
+          local cursor_position = vim.fn.getpos(".")
+          assert.are.same({ 2, 8 }, vim.list_slice(cursor_position, 2, 3))
+        end,
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "above" })
+        end,
+        expected = function()
+          local cursor_position = vim.fn.getpos(".")
+          assert.are.same({ 3, 8 }, vim.list_slice(cursor_position, 2, 3))
+        end,
+      })
+    end)
+
+    it("supports multi line template", function()
+      neolog.setup({
+        log_templates = {
+          default = {
+            javascript = [[
+              console.group("Test")
+              console.log("FOO")
+              console.log("%identifier", %identifier)
+              console.groupEnd()
+            ]],
+          },
+        },
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = function()
+          local cursor_position = vim.fn.getpos(".")
+          assert.are.same({ 2, 8 }, vim.list_slice(cursor_position, 2, 3))
+        end,
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "above" })
+        end,
+        expected = function()
+          local cursor_position = vim.fn.getpos(".")
+          assert.are.same({ 6, 8 }, vim.list_slice(cursor_position, 2, 3))
+        end,
+      })
+    end)
+  end)
+
+  it("supports multi lines template", function()
+    neolog.setup({
+      log_templates = {
+        default = {
+          javascript = [[
+            console.group("Test")
+            console.log("FOO")
+            console.log("%identifier", %identifier)
+            console.groupEnd()
+          ]],
+        },
+      },
     })
 
     helper.assert_scenario({
@@ -405,12 +539,17 @@ describe("neolog.actions.insert_log", function()
       ]],
       filetype = "javascript",
       action = function()
-        actions.insert_log({ position = "above" })
+        actions.insert_log({ position = "below" })
       end,
-      expected = function()
-        local cursor_position = vim.fn.getpos(".")
-        assert.are.same({ 3, 8 }, vim.list_slice(cursor_position, 2, 3))
-      end,
+      expected = [[
+        // Comment
+        const foo = "foo"
+        console.group("Test")
+        console.log("FOO")
+        console.log("foo", foo)
+        console.groupEnd()
+        const bar = "bar"
+      ]],
     })
   end)
 end)

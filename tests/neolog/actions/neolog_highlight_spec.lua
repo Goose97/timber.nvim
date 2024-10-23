@@ -138,13 +138,13 @@ describe("neolog.highlight.highlight_insert", function()
 
       helper.assert_scenario({
         input = [[
-        // Comment
-        const fo|o = "bar"
-        console.log("foo", foo)
-      ]],
+          // Comment
+          const fo|o = "bar"
+          console.log("foo", foo)
+        ]],
         filetype = "javascript",
         action = function()
-          highlight.highlight_insert(3)
+          highlight.highlight_insert(3, 3)
         end,
         expected = function()
           local bufnr = vim.api.nvim_get_current_buf()
@@ -169,16 +169,18 @@ describe("neolog.highlight.highlight_insert", function()
 
       helper.assert_scenario({
         input = [[
-        // Comment
-        const fo|o = "bar"
-        console.log("foo", foo)
-      ]],
+          // Comment
+          const fo|o = "bar"
+          console.log("foo", foo)
+        ]],
         filetype = "javascript",
         action = function()
-          highlight.highlight_insert(3)
+          highlight.highlight_insert(3, 3)
         end,
         expected = function()
+          -- Wait till duration passed
           helper.wait(750)
+
           local bufnr = vim.api.nvim_get_current_buf()
           local extmarks =
             vim.api.nvim_buf_get_extmarks(bufnr, highlight.hl_insert, 0, -1, { details = true, type = "highlight" })
@@ -195,10 +197,10 @@ describe("neolog.highlight.highlight_insert", function()
 
       helper.assert_scenario({
         input = [[
-        // Comment
-        const fo|o = "bar"
-        console.log("foo", foo)
-      ]],
+          // Comment
+          const fo|o = "bar"
+          console.log("foo", foo)
+        ]],
         filetype = "javascript",
         action = function()
           highlight.highlight_insert(3)
