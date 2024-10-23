@@ -327,6 +327,58 @@ describe("neolog.actions.insert_log", function()
       ]],
     })
   end)
+
+  describe("handles user errors", function()
+    it("notifies when the filetype is not recognized", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "unknown",
+        expected = function()
+          assert.error_matches(function()
+            actions.insert_log({ position = "below" })
+          end, "neolog: Treesitter cannot determine language for current buffer")
+        end,
+      })
+    end)
+
+    it("notifies when the log template is not found", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "javascript",
+        expected = function()
+          assert.error_matches(function()
+            actions.insert_log({ template = "unknown", position = "below" })
+          end, "neolog: Log template 'unknown' is not found")
+        end,
+      })
+    end)
+
+    it("notifies when the filetype is not recognized", function()
+      neolog.setup({
+        log_templates = {
+          testing = {},
+        },
+      })
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "javascript",
+        expected = function()
+          assert.error_matches(function()
+            actions.insert_log({ template = "testing", position = "below" })
+          end, "neolog: Log template 'testing' does not have 'javascript' language template")
+        end,
+      })
+    end)
+  end)
 end)
 
 describe("neolog.actions.insert_batch_log", function()
@@ -427,7 +479,7 @@ describe("neolog.actions.insert_batch_log", function()
       end,
       expected = function()
         assert.spy(notify_spy).was_called(1)
-        assert.spy(notify_spy).was_called_with("Log batch is empty", vim.log.levels.INFO)
+        assert.spy(notify_spy).was_called_with("neolog: Log batch is empty", vim.log.levels.INFO)
       end,
     })
 
@@ -449,18 +501,22 @@ describe("neolog.actions.insert_batch_log", function()
       const baz = "baz"
     ]]
 
+    local notify_spy = spy.on(vim, "notify")
+
     helper.assert_scenario({
       input = input,
       filetype = "javascript",
       action = function()
         vim.cmd("normal! V2j")
         actions.add_log_targets_to_batch()
+        actions.__insert_batch_log()
       end,
       expected = function()
-        assert.has_error(function()
-          -- Use the internal function to capture the error message
-          actions.__insert_batch_log()
-        end, "%identifier placeholder can only be used inside %repeat placeholder")
+        assert.spy(notify_spy).was_called(1)
+        assert
+          .spy(notify_spy)
+          .was_called_with("neolog: Cannot use %identifier placeholder outside %repeat placeholder", vim.log.levels.ERROR)
+        notify_spy:clear()
       end,
     })
   end)
@@ -490,8 +546,63 @@ describe("neolog.actions.insert_batch_log", function()
     -- Dot repeat the action. Now the batch is empty, it should notify the user
     vim.cmd("normal! .")
     assert.spy(notify_spy).was_called(1)
-    assert.spy(notify_spy).was_called_with("Log batch is empty", vim.log.levels.INFO)
+    assert.spy(notify_spy).was_called_with("neolog: Log batch is empty", vim.log.levels.INFO)
     notify_spy:clear()
+  end)
+
+  describe("handles user errors", function()
+    it("notifies when the filetype is not recognized", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "unknown",
+        expected = function()
+          assert.error_matches(function()
+            actions.add_log_targets_to_batch()
+            actions.insert_batch_log()
+          end, "neolog: Treesitter cannot determine language for current buffer")
+        end,
+      })
+    end)
+
+    it("notifies when the log template is not found", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "javascript",
+        expected = function()
+          assert.error_matches(function()
+            actions.add_log_targets_to_batch()
+            actions.insert_batch_log({ template = "unknown" })
+          end, "neolog: Log template 'unknown' is not found")
+        end,
+      })
+    end)
+
+    it("notifies when the filetype is not recognized", function()
+      neolog.setup({
+        batch_log_templates = {
+          testing = {},
+        },
+      })
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "javascript",
+        expected = function()
+          assert.error_matches(function()
+            actions.add_log_targets_to_batch()
+            actions.insert_batch_log({ template = "testing" })
+          end, "neolog: Batch log template 'testing' does not have 'javascript' language template")
+        end,
+      })
+    end)
   end)
 end)
 
@@ -560,5 +671,22 @@ describe("neolog.actions.add_log_targets_to_batch", function()
         assert.are.same(2, actions.get_batch_size())
       end,
     })
+  end)
+
+  describe("handles user errors", function()
+    it("notifies when the filetype is not recognized", function()
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = bar + baz
+        ]],
+        filetype = "unknown",
+        expected = function()
+          assert.error_matches(function()
+            actions.add_log_targets_to_batch()
+          end, "neolog: Treesitter cannot determine language for current buffer")
+        end,
+      })
+    end)
   end)
 end)

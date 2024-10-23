@@ -350,7 +350,8 @@ local function build_batch_log_statement(log_template, batch)
   local current_line = vim.fn.getpos(".")[2]
   local result1, insert_cursor_offset = resolve_template_placeholders(result, {
     identifier = function()
-      error("%identifier placeholder can only be used inside %repeat placeholder")
+      vim.notify("neolog: Cannot use %identifier placeholder outside %repeat placeholder", vim.log.levels.ERROR)
+      return "%identifier"
     end,
     line_number = tostring(current_line + 1),
   })
@@ -369,13 +370,13 @@ end
 local function get_lang_log_template(template_set, kind)
   local lang = get_lang(vim.bo.filetype)
   if not lang then
-    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
+    vim.notify("neolog: Treesitter cannot determine language for current buffer", vim.log.levels.ERROR)
     return
   end
 
   local log_template_set = (kind == "single" and M.log_templates or M.batch_log_templates)[template_set]
   if not log_template_set then
-    vim.notify(string.format("Log template '%s' is not found", template_set), vim.log.levels.ERROR)
+    vim.notify(string.format("neolog: Log template '%s' is not found", template_set), vim.log.levels.ERROR)
     return
   end
 
@@ -383,7 +384,7 @@ local function get_lang_log_template(template_set, kind)
   if not log_template_lang then
     vim.notify(
       string.format(
-        "%s '%s' does not have '%s' language template",
+        "neolog: %s '%s' does not have '%s' language template",
         kind == "single" and "Log template" or "Batch log template",
         template_set,
         lang
@@ -454,7 +455,7 @@ function M.__insert_batch_log(_)
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
 
   if #M.batch == 0 then
-    vim.notify("Log batch is empty", vim.log.levels.INFO)
+    vim.notify("neolog: Log batch is empty", vim.log.levels.INFO)
     return
   end
 
@@ -485,7 +486,7 @@ end
 function M.__add_log_targets_to_batch()
   local lang = get_lang(vim.bo.filetype)
   if not lang then
-    vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
+    vim.notify("neolog: Treesitter cannot determine language for current buffer", vim.log.levels.ERROR)
     return
   end
 
