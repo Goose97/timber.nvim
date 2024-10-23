@@ -286,4 +286,23 @@ function M.process_multiline_string(input)
   end)
 end
 
+---@param message string|string[]
+---@param level "info" | "warn" | "error"
+function M.notify(message, level)
+  -- Construct message chunks
+  local message_with_hl = type(message) == "string" and { { message } } or message
+  ---@cast message_with_hl string[]
+
+  local hl_group = {
+    info = "None",
+    warn = "WarningMsg",
+    error = "ErrorMsg",
+  }
+  table.insert(message_with_hl, 1, { "(neolog) ", hl_group[level] })
+
+  -- Echo. Force redraw to ensure that it is effective (`:h echo-redraw`)
+  vim.cmd([[echo '' | redraw]])
+  vim.api.nvim_echo(message_with_hl, true, {})
+end
+
 return M
