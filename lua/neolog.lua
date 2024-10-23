@@ -31,6 +31,7 @@ local default_config = {
       typescript = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
       jsx = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
       tsx = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
+      lua = [[print(string.format("%repeat<%identifier=%s><, >", %repeat<%identifier><, >))]],
     },
   },
   highlight = {

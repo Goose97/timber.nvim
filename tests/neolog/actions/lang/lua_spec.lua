@@ -2,7 +2,7 @@ local neolog = require("neolog")
 local helper = require("tests.neolog.helper")
 local actions = require("neolog.actions")
 
-describe("lua", function()
+describe("lua single log", function()
   before_each(function()
     neolog.setup({
       log_templates = {
@@ -577,5 +577,33 @@ describe("lua", function()
         ]],
       })
     end)
+  end)
+end)
+
+describe("lua batch log", function()
+  it("supports batch log", function()
+    neolog.setup({
+      batch_log_templates = {
+        default = {
+          lua = [[print(string.format("%repeat<%identifier=%s><, >", %repeat<%identifier><, >))]],
+        },
+      },
+    })
+
+    helper.assert_scenario({
+      input = [[
+        local fo|o = bar + baz
+      ]],
+      filetype = "lua",
+      action = function()
+        vim.cmd("normal! V")
+        actions.add_log_targets_to_batch()
+        actions.insert_batch_log()
+      end,
+      expected = [[
+        local foo = bar + baz
+        print(string.format("foo=%s, bar=%s, baz=%s", foo, bar, baz))
+      ]],
+    })
   end)
 end)
