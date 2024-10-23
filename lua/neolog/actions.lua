@@ -8,6 +8,26 @@ local highlight = require("neolog.highlight")
 local treesitter = require("neolog.actions.treesitter")
 local utils = require("neolog.utils")
 
+---@class NeologActionsState
+---@field current_command_arguments {insert_log: InsertLogOptions?, insert_batch_log: InsertBatchLogOptions?}
+---@field current_selection_range {[1]: number, [2]: number, [3]: number, [4]: number}?
+---@field last_command_moved_cursor boolean Whether the last command moved the cursor position
+
+---@type NeologActionsState
+local state = {
+  current_command_arguments = {},
+  current_selection_range = nil,
+  last_command_moved_cursor = false,
+}
+
+---@param callback string
+local function make_dot_repeatable(callback)
+  -- Reset the operatorfunc
+  vim.go.operatorfunc = "v:lua.require'neolog.utils'.NOOP"
+  vim.cmd("normal! g@l")
+  vim.go.operatorfunc = "v:lua.require'neolog.actions'." .. callback
+end
+
 ---@param line_number number 1-indexed
 local function indent_line_number(line_number)
   local current_pos = vim.api.nvim_win_get_cursor(0)
@@ -104,8 +124,14 @@ local function after_insert_log_statements(statements)
     --   2. Move to the first character
     --   3. Move left by the offset
     --   4. Go to insert mode
-    vim.cmd(string.format("normal! %dG^%dl", row + 1, offset - 1))
-    vim.cmd("startinsert")
+    -- We need to defer because the function is executed in normal mode by g@ operator
+    -- After the function is executed, we can go to insert mode
+    vim.defer_fn(function()
+      vim.cmd(string.format("normal! %dG^%dl", row + 1, offset - 1))
+      vim.cmd("startinsert")
+    end, 0)
+
+    state.last_command_moved_cursor = true
   end
 end
 
@@ -126,11 +152,7 @@ end
 ---@param log_targets TSNode[]
 ---@return TSNode[][]
 local function group_overlapping_log_targets(log_targets)
-  -- Add index to make sure the sort is stable
-  log_targets = utils.array_sort_with_index(log_targets, function(a, b)
-    local result = utils.compare_ts_node_start(a[1], b[1])
-    return result == "equal" and a[2] < b[2] or result == "before"
-  end)
+  log_targets = treesitter.sort_ts_nodes_preorder(log_targets)
 
   local groups = {}
 
@@ -179,17 +201,7 @@ local function pick_best_node(nodes, selection_range)
     return nodes[1]
   end
 
-  -- Sort by node start then by node end (descending)
-  -- Add index to make sure the sort is stable
-  nodes = utils.array_sort_with_index(nodes, function(a, b)
-    local result = utils.compare_ts_node_start(a[1], b[1])
-    if result == "equal" then
-      result = utils.compare_ts_node_end(a[1], b[1])
-      return result == "equal" and a[2] < b[2] or result == "after"
-    else
-      return result == "before"
-    end
-  end)
+  nodes = treesitter.sort_ts_nodes_preorder(nodes)
 
   -- @type TSNode?
   local best_node = utils.array_find(nodes, function(node)
@@ -202,7 +214,8 @@ end
 ---@param lang string
 ---@return {log_container: TSNode, logable_range: logable_range?, log_targets: TSNode[]}[]
 local function capture_log_targets(lang)
-  local selection_range = utils.get_selection_range()
+  -- If state.current_selection_range is nil, this means the user is dot repeating.
+  local selection_range = state.current_selection_range or utils.get_selection_range()
   local log_containers = treesitter.query_log_target_container(lang, selection_range)
 
   local result = {}
@@ -391,12 +404,9 @@ end
 
 --- @alias LogPosition "above" | "below"
 
---- Insert log statement for the current identifier at the cursor
---- @class InsertLogOptions
---- @field template string? Which template to use. Defaults to `default`
---- @field position LogPosition
---- @param opts InsertLogOptions
-function M.insert_log(opts)
+function M.__insert_log(_)
+  local opts = state.current_command_arguments.insert_log
+
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
   local log_template_lang, lang = get_lang_log_template(opts.template, "single")
 
@@ -415,13 +425,32 @@ function M.insert_log(opts)
 
   insert_log_statements(to_insert)
   after_insert_log_statements(to_insert)
+
+  make_dot_repeatable("__insert_log")
 end
 
---- Insert log statement for given batch
---- @class InsertBatchLogOptions
+--- Insert log statement for the current identifier at the cursor
+--- @class InsertLogOptions
 --- @field template string? Which template to use. Defaults to `default`
---- @param opts InsertBatchLogOptions?
-function M.insert_batch_log(opts)
+--- @field position LogPosition
+--- @param opts InsertLogOptions
+function M.insert_log(opts)
+  state.current_command_arguments.insert_log = opts
+  state.current_selection_range = utils.get_selection_range()
+
+  local cursor_position = vim.fn.getpos(".")
+  vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"
+  vim.cmd("normal! g@l")
+  -- If log template use %insert_cursor, don't restore the cursor position
+  if not state.last_command_moved_cursor then
+    vim.fn.setpos(".", cursor_position)
+  end
+
+  state.current_selection_range = nil
+end
+
+function M.__insert_batch_log(_)
+  local opts = state.current_command_arguments.insert_batch_log
   opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
 
   if #M.batch == 0 then
@@ -438,12 +467,22 @@ function M.insert_batch_log(opts)
   insert_log_statements({ to_insert })
   after_insert_log_statements({ to_insert })
   M.clear_batch()
+
+  make_dot_repeatable("__insert_batch_log")
+end
+
+--- Insert log statement for given batch
+--- @class InsertBatchLogOptions
+--- @field template string? Which template to use. Defaults to `default`
+--- @param opts InsertBatchLogOptions?
+function M.insert_batch_log(opts)
+  vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_batch_log"
+  state.current_command_arguments.insert_batch_log = opts
+  vim.cmd("normal! g@l")
 end
 
 ---Add log target to the log batch
-function M.add_log_targets_to_batch()
-  local mode = vim.api.nvim_get_mode().mode
-
+function M.__add_log_targets_to_batch()
   local lang = get_lang(vim.bo.filetype)
   if not lang then
     vim.notify("Cannot determine language for current buffer", vim.log.levels.ERROR)
@@ -459,20 +498,26 @@ function M.add_log_targets_to_batch()
     end
   end
 
-  to_add = utils.array_sort_with_index(to_add, function(a, b)
-    local result = utils.compare_ts_node_start(a[1], b[1])
-    return result == "equal" and a[2] < b[2] or result == "before"
-  end)
+  to_add = treesitter.sort_ts_nodes_preorder(to_add)
 
   vim.list_extend(M.batch, to_add)
-
-  if mode == "v" or mode == "V" then
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
-  end
 
   for _, target in ipairs(to_add) do
     highlight.highlight_add_to_batch(target)
   end
+
+  make_dot_repeatable("add_log_targets_to_batch")
+end
+
+function M.add_log_targets_to_batch()
+  state.current_selection_range = utils.get_selection_range()
+
+  local cursor_position = vim.fn.getpos(".")
+  vim.go.operatorfunc = "v:lua.require'neolog.actions'.__add_log_targets_to_batch"
+  vim.cmd("normal! g@l")
+  vim.fn.setpos(".", cursor_position)
+
+  state.current_selection_range = nil
 end
 
 function M.get_batch_size()

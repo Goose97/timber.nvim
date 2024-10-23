@@ -3,7 +3,9 @@ local M = {}
 local utils = require("neolog.utils")
 
 ---Sort the given nodes in the order that they would appear in a preorder traversal
-local function sort_ts_nodes_preorder(nodes)
+---@param nodes TSNode[]
+---@return TSNode[]
+function M.sort_ts_nodes_preorder(nodes)
   return utils.array_sort_with_index(nodes, function(a, b)
     local result = utils.compare_ts_node_start(a[1], b[1])
     if result == "equal" then
@@ -100,7 +102,7 @@ function M.find_log_targets(containers, lang)
 
   -- If there's multiple containers for the same log target, pick the deepest container
   for log_target_id, log_containers in pairs(grouped_log_targets) do
-    local sorted_group = sort_ts_nodes_preorder(log_containers)
+    local sorted_group = M.sort_ts_nodes_preorder(log_containers)
     local deepest_container = sorted_group[#sorted_group]
 
     local log_target = log_targets_table[log_target_id]

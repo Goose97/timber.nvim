@@ -1,5 +1,8 @@
 local M = {}
 
+-- Do nothing.
+M.NOOP = function() end
+
 function M.array_find(array, predicate)
   for i, v in ipairs(array) do
     if predicate(v, i) then
@@ -175,8 +178,6 @@ end
 ---@return {[1]: number, [2]: number, [3]: number, [4]: number}
 function M.get_selection_range()
   local mode = vim.api.nvim_get_mode().mode
-  -- After exiting visual mode, these marks will be available
-  -- (1,1)-indexed position
   local result1 = vim.fn.getpos("v")
   local result2 = vim.fn.getpos(".")
   local srow = result1[2]

@@ -84,10 +84,12 @@ describe("neolog.actions.insert_log", function()
             position = "below",
           })
 
-          vim.api.nvim_feedkeys("abc", "n", false)
+          vim.defer_fn(function()
+            vim.api.nvim_feedkeys("abc", "n", false)
+          end, 0)
         end,
         expected = function()
-          helper.wait(100)
+          helper.wait(20)
 
           local mode = vim.api.nvim_get_mode().mode
           assert.are.same("i", mode)
@@ -101,6 +103,10 @@ describe("neolog.actions.insert_log", function()
           assert.are.same(expected, output)
         end,
       })
+
+      -- Wait for Neovim to actually stop insert mode
+      vim.cmd("stopinsert")
+      helper.wait(20)
     end)
 
     it("chooses the first statement if there are multiple", function()
@@ -124,18 +130,12 @@ describe("neolog.actions.insert_log", function()
             position = "below",
           })
 
-          vim.api.nvim_feedkeys("abc", "n", false)
+          vim.defer_fn(function()
+            vim.api.nvim_feedkeys("abc", "n", false)
+          end, 0)
         end,
         expected = function()
-          local co = coroutine.running()
-
-          -- Neovim doesn't move into insert mode immediately
-          -- Sleep a bit
-          vim.defer_fn(function()
-            coroutine.resume(co)
-          end, 100)
-
-          coroutine.yield()
+          helper.wait(20)
 
           local mode = vim.api.nvim_get_mode().mode
           assert.are.same("i", mode)
@@ -151,6 +151,10 @@ describe("neolog.actions.insert_log", function()
         end,
       })
     end)
+
+    -- Wait for Neovim to actually stop insert mode
+    vim.cmd("stopinsert")
+    helper.wait(20)
   end)
 
   describe("supports log template that doesn't contain %identifier", function()
@@ -302,11 +306,33 @@ describe("neolog.actions.insert_log", function()
 
     highlight_spy:clear()
   end)
+
+  it("supports dot repeat", function()
+    helper.assert_scenario({
+      input = [[
+        // Comment
+        const fo|o = bar + baz
+      ]],
+      filetype = "javascript",
+      action = function()
+        actions.insert_log({ position = "below" })
+        vim.cmd("normal! 2w.2w.")
+      end,
+      expected = [[
+        // Comment
+        const foo = bar + baz
+        console.log("baz", baz)
+        console.log("bar", bar)
+        console.log("foo", foo)
+      ]],
+    })
+  end)
 end)
 
 describe("neolog.actions.insert_batch_log", function()
   before_each(function()
     neolog.setup()
+    actions.clear_batch()
   end)
 
   it("supports adding log targets to the batch, getting batch size, and clearing batch", function()
@@ -359,8 +385,6 @@ describe("neolog.actions.insert_batch_log", function()
         actions.add_log_targets_to_batch()
       end,
       expected = function()
-        helper.wait(100)
-
         local mode = vim.api.nvim_get_mode().mode
         assert.are.same("n", mode)
       end,
@@ -434,17 +458,50 @@ describe("neolog.actions.insert_batch_log", function()
       end,
       expected = function()
         assert.has_error(function()
-          actions.insert_batch_log()
+          -- Use the internal function to capture the error message
+          actions.__insert_batch_log()
         end, "%identifier placeholder can only be used inside %repeat placeholder")
       end,
     })
   end)
+
+  it("supports dot repeat", function()
+    local input = [[
+      // Comment
+      const fo|o = "foo"
+    ]]
+
+    local notify_spy = spy.on(vim, "notify")
+
+    helper.assert_scenario({
+      input = input,
+      filetype = "javascript",
+      action = function()
+        actions.add_log_targets_to_batch()
+        actions.insert_batch_log()
+      end,
+      expected = [[
+        // Comment
+        const foo = "foo"
+        console.log({ "foo": foo })
+      ]],
+    })
+
+    -- Dot repeat the action. Now the batch is empty, it should notify the user
+    vim.cmd("normal! .")
+    assert.spy(notify_spy).was_called(1)
+    assert.spy(notify_spy).was_called_with("Log batch is empty", vim.log.levels.INFO)
+    notify_spy:clear()
+  end)
 end)
 
 describe("neolog.actions.add_log_targets_to_batch", function()
-  it("calls highlight.highlight_add_to_batch for each target", function()
+  before_each(function()
     neolog.setup()
+    actions.clear_batch()
+  end)
 
+  it("calls highlight.highlight_add_to_batch for each target", function()
     local highlight_spy = spy.on(highlight, "highlight_add_to_batch")
 
     helper.assert_scenario({
@@ -464,5 +521,44 @@ describe("neolog.actions.add_log_targets_to_batch", function()
     })
 
     highlight_spy:clear()
+  end)
+
+  it("preserves the cursor position after adding in visual mode", function()
+    helper.assert_scenario({
+      input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! Vj")
+        actions.add_log_targets_to_batch()
+      end,
+      expected = function()
+        assert.are.same(2, actions.get_batch_size())
+
+        local cursor_position = vim.fn.getpos(".")
+        assert.are.same({ 3, 8 }, vim.list_slice(cursor_position, 2, 3))
+      end,
+    })
+  end)
+
+  it("supports dot repeat", function()
+    helper.assert_scenario({
+      input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+      filetype = "javascript",
+      action = function()
+        actions.add_log_targets_to_batch()
+        vim.cmd("normal! j.")
+      end,
+      expected = function()
+        assert.are.same(2, actions.get_batch_size())
+      end,
+    })
   end)
 end)

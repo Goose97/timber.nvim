@@ -68,15 +68,14 @@ describe("javascriptreact", function()
       }
     ]]
 
-    -- TODO: figure out why indentation is off with inner jsx element
     expected = [[
       function foo() {
         const a = 1
         const b = true
         const el = (
           <div>
-          {b && <div>{a + 1}</div>}
-          <input className={c} />
+            {b && <div>{a + 1}</div>}
+            <input className={c} />
           </div>
         )
         console.log("b", b)

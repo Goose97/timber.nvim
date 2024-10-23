@@ -122,9 +122,9 @@ describe("lua", function()
         local function foo(
           bar,
           baz,
-          )
-          print("bar", bar)
-          print("baz", baz)
+        )
+        print("bar", bar)
+        print("baz", baz)
           return nil
         end
       ]],
