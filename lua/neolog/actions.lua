@@ -8,16 +8,28 @@ local highlight = require("neolog.highlight")
 local treesitter = require("neolog.actions.treesitter")
 local utils = require("neolog.utils")
 
+---@class LogStatementInsert
+---@field content string[] The log statement content
+---@field row number The (0-indexed) row number to insert
+---@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
+---@field log_target TSNode? The log target node
+
+--- @alias LogPosition "above" | "below"
+
+--- @class InsertLogReturn
+--- @field cursor_moved boolean Whether the cursor position was moved
+--- @field inserted_lines integer[] (0-indexed) row numbers of inserted lines
+
 ---@class NeologActionsState
 ---@field current_command_arguments {insert_log: InsertLogOptions?, insert_batch_log: InsertBatchLogOptions?}
 ---@field current_selection_range {[1]: number, [2]: number, [3]: number, [4]: number}?
----@field last_command_moved_cursor boolean Whether the last command moved the cursor position
+---@field last_command_return {insert_log: InsertLogReturn? }
 
 ---@type NeologActionsState
 local state = {
   current_command_arguments = {},
   current_selection_range = nil,
-  last_command_moved_cursor = false,
+  last_command_return = {},
 }
 
 ---@param callback string
@@ -80,6 +92,7 @@ local function resolve_template_placeholders(log_template, handlers)
 end
 
 ---@param statements LogStatementInsert[]
+---@return integer[] (0-indexed) row numbers of inserted lines
 local function insert_log_statements(statements)
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -94,6 +107,8 @@ local function insert_log_statements(statements)
     return a.row < b.row
   end)
 
+  local inserted_lines = {}
+
   -- Offset the row numbers
   local offset = 0
 
@@ -104,12 +119,17 @@ local function insert_log_statements(statements)
 
     highlight.highlight_insert(insert_line)
     offset = offset + #statement.content
+
+    table.insert(inserted_lines, insert_line)
   end
+
+  return inserted_lines
 end
 
 ---Perform post-insert operations:
 ---   1. Place the cursor at the insert_cursor placeholder if any
 ---@param statements LogStatementInsert[]
+---@return boolean Whether the cursor position was moved
 local function after_insert_log_statements(statements)
   local has_insert_cursor_statement = utils.array_find(statements, function(statement)
     return statement.insert_cursor_offset
@@ -131,8 +151,10 @@ local function after_insert_log_statements(statements)
       vim.cmd("startinsert")
     end, 0)
 
-    state.last_command_moved_cursor = true
+    return true
   end
+
+  return false
 end
 
 ---@param filetype string
@@ -397,14 +419,6 @@ local function get_lang_log_template(template_set, kind)
   return log_template_lang, lang
 end
 
----@class LogStatementInsert
----@field content string[] The log statement content
----@field row number The (0-indexed) row number to insert
----@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
----@field log_target TSNode? The log target node
-
---- @alias LogPosition "above" | "below"
-
 function M.__insert_log(_)
   local opts = state.current_command_arguments.insert_log
 
@@ -424,10 +438,15 @@ function M.__insert_log(_)
       and build_capture_log_statements(log_template_lang, lang, opts.position)
     or { build_non_capture_log_statement(log_template_lang, opts.position) }
 
-  insert_log_statements(to_insert)
-  after_insert_log_statements(to_insert)
+  local inserted_lines = insert_log_statements(to_insert)
+  local cursor_moved = after_insert_log_statements(to_insert)
 
   make_dot_repeatable("__insert_log")
+
+  state.last_command_return.insert_log = {
+    cursor_moved = cursor_moved,
+    inserted_lines = inserted_lines,
+  }
 end
 
 --- Insert log statement for the current identifier at the cursor
@@ -442,11 +461,27 @@ function M.insert_log(opts)
   local cursor_position = vim.fn.getpos(".")
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"
   vim.cmd("normal! g@l")
+
+  local result = state.last_command_return.insert_log
+  ---@cast result -nil
+
   -- If log template use %insert_cursor, don't restore the cursor position
-  if not state.last_command_moved_cursor then
+  if not result.cursor_moved then
+    -- The inserted lines above the cursor shift the cursor position away. We need to account for that
+    local original_row = cursor_position[2] - 1
+
+    for _, i in ipairs(result.inserted_lines) do
+      local need_to_shift = i <= original_row
+      if need_to_shift then
+        original_row = original_row + 1
+      end
+    end
+
+    cursor_position[2] = original_row + 1
     vim.fn.setpos(".", cursor_position)
   end
 
+  state.last_command_return.insert_log = nil
   state.current_selection_range = nil
 end
 

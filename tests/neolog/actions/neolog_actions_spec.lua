@@ -379,6 +379,40 @@ describe("neolog.actions.insert_log", function()
       })
     end)
   end)
+
+  it("preserves the cursor position after inserting", function()
+    helper.assert_scenario({
+      input = [[
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
+      filetype = "javascript",
+      action = function()
+        actions.insert_log({ position = "below" })
+      end,
+      expected = function()
+        local cursor_position = vim.fn.getpos(".")
+        assert.are.same({ 2, 8 }, vim.list_slice(cursor_position, 2, 3))
+      end,
+    })
+
+    helper.assert_scenario({
+      input = [[
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
+      filetype = "javascript",
+      action = function()
+        actions.insert_log({ position = "above" })
+      end,
+      expected = function()
+        local cursor_position = vim.fn.getpos(".")
+        assert.are.same({ 3, 8 }, vim.list_slice(cursor_position, 2, 3))
+      end,
+    })
+  end)
 end)
 
 describe("neolog.actions.insert_batch_log", function()
