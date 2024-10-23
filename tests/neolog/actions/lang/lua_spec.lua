@@ -84,47 +84,132 @@ describe("lua single log", function()
     })
   end)
 
-  it("supports function parameters", function()
+  describe("supports function parameters", function()
+    it("supports function declaration", function()
+      helper.assert_scenario({
+        input = [[
+          function foo(ba|r)
+            return nil
+          end
+        ]],
+        filetype = "lua",
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          function foo(bar)
+            print("bar", bar)
+            return nil
+          end
+        ]],
+      })
+
+      -- TODO: figure out why indentation is off with the closing parenthesis
+      helper.assert_scenario({
+        input = [[
+          local function foo(
+            ba|r,
+            baz,
+          )
+            return nil
+          end
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! Vj")
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
+          local function foo(
+            bar,
+            baz,
+          )
+          print("bar", bar)
+          print("baz", baz)
+            return nil
+          end
+        ]],
+      })
+    end)
+
+    it("supports function definition", function()
+      helper.assert_scenario({
+        input = [[
+          local foo = {
+            bar = function(ba|z, baf)
+              return nil
+            end,
+          }
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          local foo = {
+            bar = function(baz, baf)
+              print("baz", baz)
+              print("baf", baf)
+              return nil
+            end,
+          }
+        ]],
+      })
+    end)
+
+    it("DOES NOT support ignored parameters", function()
+      helper.assert_scenario({
+        input = [[
+          function foo(ba|r, _)
+            return nil
+          end
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          function foo(bar, _)
+            print("bar", bar)
+            return nil
+          end
+        ]],
+      })
+    end)
+  end)
+
+  it("DOES NOT support function name in function call", function()
     helper.assert_scenario({
       input = [[
-        function foo(ba|r)
-          return nil
-        end
+        foo.bar(ba|z)
       ]],
       filetype = "lua",
       action = function()
+        vim.cmd("normal! V")
         actions.insert_log({ position = "below" })
       end,
       expected = [[
-        function foo(bar)
-          print("bar", bar)
-          return nil
-        end
+        foo.bar(baz)
+        print("baz", baz)
       ]],
     })
 
-    -- TODO: figure out why indentation is off with the closing parenthesis
     helper.assert_scenario({
       input = [[
-        local function foo(
-          ba|r,
-          baz,
-        )
+        if not (foo.bar or foo.baz)(ba|z) then
           return nil
         end
       ]],
       filetype = "lua",
       action = function()
-        vim.cmd("normal! Vj")
-        actions.insert_log({ position = "above" })
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "below" })
       end,
       expected = [[
-        local function foo(
-          bar,
-          baz,
-        )
-        print("bar", bar)
-        print("baz", baz)
+        if not (foo.bar or foo.baz)(baz) then
+          print("baz", baz)
           return nil
         end
       ]],

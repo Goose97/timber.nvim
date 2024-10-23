@@ -14,6 +14,11 @@
   body: (block) @logable_range
 )
 
+(function_definition
+  parameters: (parameters) @log_container
+  body: (block) @logable_range
+)
+
 (if_statement
   condition: (_) @log_container
   consequence: (block) @logable_range
