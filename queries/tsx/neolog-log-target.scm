@@ -39,6 +39,6 @@
     (member_expression)
     (subscript_expression)
   ]) @log_target
-  (#has-parent? @log_target arguments)
+  (#has-ancestor? @log_target arguments)
 )
 

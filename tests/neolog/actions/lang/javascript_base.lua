@@ -455,6 +455,23 @@ local run = function(language)
         console.log("baf", baf)
       ]],
     })
+
+    helper.assert_scenario({
+      input = [[
+        foo({ foo: foo, bar: bar.b|az }).then(baf)
+      ]],
+      filetype = language,
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "below" })
+      end,
+      expected = [[
+        foo({ foo: foo, bar: bar.baz }).then(baf)
+        console.log("foo", foo)
+        console.log("bar.baz", bar.baz)
+        console.log("baf", baf)
+      ]],
+    })
   end)
 
   describe("supports for loop statement", function()
