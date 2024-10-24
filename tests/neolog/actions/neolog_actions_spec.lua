@@ -570,6 +570,129 @@ describe("neolog.actions.insert_log", function()
       ]],
     })
   end)
+
+  describe("supports surround log", function()
+    it("specifies before and after templates", function()
+      neolog.setup({
+        log_templates = {
+          testing1 = {
+            javascript = [[console.log("Testing")]],
+          },
+          testing2 = {
+            javascript = [[console.log("%identifier", %identifier)]],
+          },
+        },
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "surround", templates = { before = "testing1", after = "testing2" } })
+        end,
+        expected = [[
+          // Comment
+          console.log("Testing")
+          const foo = "foo"
+          console.log("foo", foo)
+          const bar = "bar"
+        ]],
+      })
+    end)
+
+    it("defaults to `default` if not specified before and after templates", function()
+      neolog.setup({
+        log_templates = {
+          default = {
+            javascript = [[console.log("%identifier", %identifier)]],
+          },
+        },
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "surround" })
+        end,
+        expected = [[
+          // Comment
+          console.log("foo", foo)
+          const foo = "foo"
+          console.log("foo", foo)
+          const bar = "bar"
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "surround", templates = { after = "default" } })
+        end,
+        expected = [[
+          // Comment
+          console.log("foo", foo)
+          const foo = "foo"
+          console.log("foo", foo)
+          const bar = "bar"
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "surround", templates = { before = "default" } })
+        end,
+        expected = [[
+          // Comment
+          console.log("foo", foo)
+          const foo = "foo"
+          console.log("foo", foo)
+          const bar = "bar"
+        ]],
+      })
+    end)
+
+    it("notifies when templates is used with position other than 'surround'", function()
+      neolog.setup()
+
+      local notify_spy = spy.on(utils, "notify")
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "above", templates = { before = "default", after = "default" } })
+        end,
+        expected = function()
+          assert.spy(notify_spy).was_called(1)
+          assert.spy(notify_spy).was_called_with("'templates' can only be used with position 'surround'", "warn")
+          notify_spy:clear()
+        end,
+      })
+    end)
+  end)
 end)
 
 describe("neolog.actions.insert_batch_log", function()

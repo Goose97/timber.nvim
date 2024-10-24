@@ -14,7 +14,7 @@ local utils = require("neolog.utils")
 ---@field insert_cursor_offset number? The offset of the %insert_cursor placeholder if any
 ---@field log_target TSNode? The log target node
 
---- @alias LogPosition "above" | "below"
+--- @alias LogPosition "above" | "below" | "surround"
 --- @alias range {[1]: number, [2]: number, [3]: number, [4]: number}
 
 ---@alias InsertLogArguments {[1]: InsertLogOptions, [2]: range, [3]: range}
@@ -93,15 +93,22 @@ end
 local function insert_log_statements(statements)
   local bufnr = vim.api.nvim_get_current_buf()
 
-  table.sort(statements, function(a, b)
+  statements = utils.array_sort_with_index(statements, function(a, b)
     -- If two statements have the same row, sort by the appearance order of the log target
-    if a.row == b.row then
-      local a_row, a_col = a.log_target:start()
-      local b_row, b_col = b.log_target:start()
+    local statement_a = a[1]
+    local statement_b = b[1]
+
+    if statement_a.row == b.row then
+      if not statement_a.log_target or not statement_b.log_target then
+        return a[2] < b[2]
+      end
+
+      local a_row, a_col = statement_a.log_target:start()
+      local b_row, b_col = statement_b.log_target:start()
       return a_row == b_row and a_col < b_col or a_row < b_row
     end
 
-    return a.row < b.row
+    return statement_a.row < statement_b.row
   end)
 
   local inserted_lines = {}
@@ -449,21 +456,36 @@ function M.__insert_log(_)
   local selection_range = state.current_command_arguments.insert_log[2] or utils.get_selection_range()
   local original_cursor_position = state.current_command_arguments.insert_log[3] or vim.fn.getpos(".")
 
-  opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
-  local log_template_lang, lang = get_lang_log_template(opts.template, "single")
+  local function build_to_insert(template, position)
+    local log_template_lang, lang = get_lang_log_template(template, "single")
 
-  if not log_template_lang or not lang then
-    return
+    if not log_template_lang or not lang then
+      return {}
+    end
+
+    -- There are two kinds of log statements:
+    --   1. Capture log statements: log statements that contain %identifier placeholder
+    --     We need to capture the log target in the selection range and replace it
+    --   2. Non-capture log statements: log statements that don't contain %identifier placeholder
+    --     We simply replace the placeholder text
+    return log_template_lang:find("%%identifier")
+        and build_capture_log_statements(log_template_lang, lang, position, selection_range)
+      or { build_non_capture_log_statement(log_template_lang, position) }
   end
 
-  -- There are two kinds of log statements:
-  --   1. Capture log statements: log statements that contain %identifier placeholder
-  --     We need to capture the log target in the selection range and replace it
-  --   2. Non-capture log statements: log statements that don't contain %identifier placeholder
-  --     We simply replace the placeholder text
-  local to_insert = log_template_lang:find("%%identifier")
-      and build_capture_log_statements(log_template_lang, lang, opts.position, selection_range)
-    or { build_non_capture_log_statement(log_template_lang, opts.position) }
+  local to_insert = {}
+
+  if opts.position == "surround" then
+    local to_insert_before = build_to_insert(opts.templates.before, "above")
+    local to_insert_after = build_to_insert(opts.templates.after, "below")
+    to_insert = { unpack(to_insert_before), unpack(to_insert_after) }
+  else
+    if opts.templates then
+      utils.notify("'templates' can only be used with position 'surround'", "warn")
+    end
+
+    to_insert = build_to_insert(opts.template, opts.position)
+  end
 
   local inserted_lines, insert_cursor_pos = insert_log_statements(to_insert)
   after_insert_log_statements(insert_cursor_pos, original_cursor_position, inserted_lines)
@@ -476,10 +498,16 @@ end
 --- Insert log statement for the current identifier at the cursor
 --- @class InsertLogOptions
 --- @field template string? Which template to use. Defaults to `default`
+--- @field templates { before: string, after: string }? Which templates to use for the log statement. Only used when position is `surround`. Defaults to `{ before = "default", after = "default" }`
 --- @field position LogPosition
 --- @param opts InsertLogOptions
 function M.insert_log(opts)
   local cursor_position = vim.fn.getpos(".")
+  opts = vim.tbl_deep_extend(
+    "force",
+    { template = "default", templates = { before = "default", after = "default" } },
+    opts or {}
+  )
   state.current_command_arguments.insert_log = { opts, utils.get_selection_range(), cursor_position }
 
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"
