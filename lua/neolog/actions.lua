@@ -98,7 +98,7 @@ local function insert_log_statements(statements)
     local statement_a = a[1]
     local statement_b = b[1]
 
-    if statement_a.row == b.row then
+    if statement_a.row == statement_b.row then
       if not statement_a.log_target or not statement_b.log_target then
         return a[2] < b[2]
       end
