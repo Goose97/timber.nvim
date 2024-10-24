@@ -317,6 +317,52 @@ describe("lua single log", function()
     end)
   end)
 
+  it("supports while loop", function()
+    helper.assert_scenario({
+      input = [[
+        while fo|o > 1 and bar < baz do
+          return nil
+        end
+      ]],
+      filetype = "lua",
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "below" })
+      end,
+      expected = [[
+        while foo > 1 and bar < baz do
+          print("foo", foo)
+          print("bar", bar)
+          print("baz", baz)
+          return nil
+        end
+      ]],
+    })
+  end)
+
+  it("supports repeat until loop", function()
+    helper.assert_scenario({
+      input = [[
+        repeat
+          return nil
+        until fo|o > 1 and bar < baz
+      ]],
+      filetype = "lua",
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_log({ position = "above" })
+      end,
+      expected = [[
+        repeat
+          print("foo", foo)
+          print("bar", bar)
+          print("baz", baz)
+          return nil
+        until foo > 1 and bar < baz
+      ]],
+    })
+  end)
+
   describe("supports identifier nested in complex expressions", function()
     it("supports ternary operator", function()
       local input = [[

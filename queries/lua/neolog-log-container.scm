@@ -40,3 +40,13 @@
   clause: (for_numeric_clause) @log_container
   body: (block) @logable_range
 )
+
+(while_statement
+  condition: (_) @log_container
+  body: (block) @logable_range
+)
+
+(repeat_statement
+  body: (block) @logable_range
+  condition: (_) @log_container
+)
