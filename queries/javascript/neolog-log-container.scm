@@ -63,3 +63,13 @@
   right: (_) @log_container
   body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
 )
+
+(while_statement
+  condition: (_) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
+
+(do_statement
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+  condition: (_) @log_container
+)

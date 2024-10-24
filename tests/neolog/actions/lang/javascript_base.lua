@@ -544,6 +544,89 @@ local run = function(language)
     end)
   end)
 
+  describe("supports while loop statement", function()
+    it("supports while loop", function()
+      helper.assert_scenario({
+        input = [[
+          while (fo|o > 1 && bar < baz) {
+            return null
+          }
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          while (foo > 1 && bar < baz) {
+            console.log("foo", foo)
+            console.log("bar", bar)
+            console.log("baz", baz)
+            return null
+          }
+        ]],
+      })
+    end)
+
+    it("DOES NOT support while loop with single expression body", function()
+      helper.assert_scenario({
+        input = [[
+          while (fo|o > 1 && bar < baz) foo += 1
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          while (foo > 1 && bar < baz) foo += 1
+        ]],
+      })
+    end)
+
+    it("supports do while loop", function()
+      helper.assert_scenario({
+        input = [[
+          do {
+            foo -= 1
+          } while (fo|o > bar)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          do {
+            console.log("foo", foo)
+            console.log("bar", bar)
+            foo -= 1
+          } while (foo > bar)
+        ]],
+      })
+    end)
+
+    it("DOES NOT support do while loop with single expression body", function()
+      helper.assert_scenario({
+        input = [[
+          do
+            foo -= 1
+          while (fo|o > bar)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          do
+            foo -= 1
+          while (foo > bar)
+        ]],
+      })
+    end)
+  end)
+
   describe("supports import statements", function()
     it("supports plain imports", function()
       helper.assert_scenario({
