@@ -41,12 +41,32 @@ local function make_dot_repeatable(callback)
   vim.go.operatorfunc = "v:lua.require'neolog.actions'." .. callback
 end
 
----@param line_number number 0-indexed
-local function indent_line_number(line_number)
-  local current_pos = vim.api.nvim_win_get_cursor(0)
-  vim.api.nvim_win_set_cursor(0, { line_number + 1, 0 })
-  vim.cmd("normal! ==")
-  vim.api.nvim_win_set_cursor(0, current_pos)
+---@param insert_line integer
+---@return integer
+local function get_current_indent(insert_line)
+  -- From the insert line, walk down to find the first non-empty line
+  -- Then walk up to find the first non-empty line
+  -- Take the maximum of the two indentations
+  local before = 0
+  local after = 0
+
+  for i = insert_line + 1, vim.fn.line("$"), 1 do
+    local line = vim.fn.getline(i)
+    if line ~= "" then
+      after = vim.fn.indent(i)
+      break
+    end
+  end
+
+  for i = insert_line, 0, -1 do
+    local line = vim.fn.getline(i)
+    if line ~= "" then
+      before = vim.fn.indent(i)
+      break
+    end
+  end
+
+  return math.max(before, after)
 end
 
 --- Build the log statement from template. Support special placeholers:
@@ -119,6 +139,7 @@ local function insert_log_statements(statements)
 
   for _, statement in ipairs(statements) do
     local insert_line = statement.row + offset
+    local indentation = get_current_indent(insert_line)
     local lines = utils.process_multiline_string(statement.content)
 
     for i, line in ipairs(lines) do
@@ -131,6 +152,8 @@ local function insert_log_statements(statements)
           insert_cursor_pos = { insert_line + i - 1, insert_cursor_offset }
         end
       end
+
+      lines[i] = string.rep(" ", indentation) .. line
     end
 
     vim.api.nvim_buf_set_lines(bufnr, insert_line, insert_line, false, lines)
@@ -139,7 +162,7 @@ local function insert_log_statements(statements)
     offset = offset + #lines
 
     for i = 0, #lines - 1, 1 do
-      indent_line_number(insert_line + i)
+      -- indent_line_number(insert_line + i)
       table.insert(inserted_lines, insert_line + i)
     end
   end

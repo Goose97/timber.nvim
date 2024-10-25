@@ -14,63 +14,6 @@ describe("javascript single log", function()
   end)
 
   require("tests.neolog.actions.lang.javascript_base")("javascript")
-
-  it("supports switch clause", function()
-    helper.assert_scenario({
-      input = [[
-        switch (foo) {
-          case ba|r:
-            break
-          case "baz":
-            break
-        }
-      ]],
-      filetype = "javascript",
-      action = function()
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        switch (foo) {
-          case bar:
-            console.log("bar", bar)
-            break
-          case "baz":
-            break
-        }
-      ]],
-    })
-
-    helper.assert_scenario({
-      input = [[
-        switch (foo) {
-          case (ba|r + baz): {
-            break
-          }
-          case "baz":
-            const baz = "baz"
-            break
-        }
-      ]],
-      filetype = "javascript",
-      action = function()
-        vim.cmd("normal! vi{V")
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        switch (foo) {
-          case (bar + baz): {
-            console.log("bar", bar)
-            console.log("baz", baz)
-            break
-          }
-          case "baz":
-            const baz = "baz"
-            console.log("baz", baz)
-            break
-        }
-      ]],
-    })
-  end)
 end)
 
 describe("javascript batch log", function()

@@ -22,6 +22,12 @@
   consequence: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
 )
 
+; if statement with single statement body
+(if_statement
+  condition: (parenthesized_expression) @log_container
+  consequence: (_) @body (#not-match? @body "^\\{")
+)
+
 (switch_statement
   value: (parenthesized_expression) @log_container
 )

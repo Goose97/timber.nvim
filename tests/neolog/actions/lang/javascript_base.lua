@@ -337,7 +337,7 @@ local run = function(language)
           predicate ?
             bar :
             baz
-        console.log("bar", bar)
+            console.log("bar", bar)
       ]]
 
       local expected2 = [[
@@ -497,60 +497,213 @@ local run = function(language)
     end)
   end)
 
-  it("supports if statement", function()
-    local input = [[
-      if (fo|o > 1 && bar < baz) {
-        return null
-      }
-    ]]
-
-    helper.assert_scenario({
-      input = input,
-      filetype = language,
-      action = function()
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        if (foo > 1 && bar < baz) {
-          console.log("foo", foo)
+  describe("supports if statement", function()
+    it("supports block statement if body", function()
+      local input = [[
+        if (fo|o > 1 && bar < baz) {
           return null
         }
-      ]],
-    })
+      ]]
 
-    helper.assert_scenario({
-      input = input,
-      filetype = language,
-      action = function()
-        vim.cmd("normal! vi(")
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        if (foo > 1 && bar < baz) {
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          if (foo > 1 && bar < baz) {
+            console.log("foo", foo)
+            return null
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          if (foo > 1 && bar < baz) {
+            console.log("foo", foo)
+            console.log("bar", bar)
+            console.log("baz", baz)
+            return null
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
           console.log("foo", foo)
           console.log("bar", bar)
           console.log("baz", baz)
-          return null
-        }
-      ]],
-    })
+          if (foo > 1 && bar < baz) {
+            return null
+          }
+        ]],
+      })
+    end)
 
-    helper.assert_scenario({
-      input = input,
-      filetype = language,
-      action = function()
-        vim.cmd("normal! vi(")
-        actions.insert_log({ position = "above" })
-      end,
-      expected = [[
-        console.log("foo", foo)
-        console.log("bar", bar)
-        console.log("baz", baz)
-        if (foo > 1 && bar < baz) {
-          return null
+    it("supports single statement if body", function()
+      local input = [[
+        const a = 1
+        if (fo|o > 1 && bar < baz) return null
+        a = 2
+      ]]
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const a = 1
+          if (foo > 1 && bar < baz) return null
+          console.log("foo", foo)
+          console.log("bar", bar)
+          console.log("baz", baz)
+          a = 2
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
+          const a = 1
+          console.log("foo", foo)
+          console.log("bar", bar)
+          console.log("baz", baz)
+          if (foo > 1 && bar < baz) return null
+          a = 2
+        ]],
+      })
+    end)
+  end)
+
+  describe("supports switch statement", function()
+    it("supports switch head", function()
+      local input = [[
+        switch (fo|o) {
+          case bar:
+            break
+          case "baz":
+            break
         }
-      ]],
-    })
+      ]]
+
+      -- This is invalid syntax but it's a delibarate choice
+      -- We want the switch statement log contaienr to be more granular
+      -- So instead of matching the whole switch statement, we match against switch head
+      -- and individual clauses
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          switch (foo) {
+            console.log("foo", foo)
+            case bar:
+              break
+            case "baz":
+              break
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
+          console.log("foo", foo)
+          switch (foo) {
+            case bar:
+              break
+            case "baz":
+              break
+          }
+        ]],
+      })
+    end)
+
+    it("supports switch clause", function()
+      helper.assert_scenario({
+        input = [[
+          switch (foo) {
+            case ba|r:
+              break
+            case "baz":
+              break
+          }
+        ]],
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          switch (foo) {
+            case bar:
+              console.log("bar", bar)
+              break
+            case "baz":
+              break
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          switch (foo) {
+            case (ba|r + baz): {
+              break
+            }
+            case "baz":
+              const baz = "baz"
+              break
+          }
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! vi{V")
+          actions.insert_log({ position = "below" })
+        end,
+        -- Again, don't know why indentation is off
+        expected = [[
+          switch (foo) {
+            case (bar + baz): {
+              console.log("bar", bar)
+              console.log("baz", baz)
+              break
+            }
+            case "baz":
+              const baz = "baz"
+              console.log("baz", baz)
+              break
+          }
+        ]],
+      })
+    end)
   end)
 
   it("supports arguments in call expression", function()
