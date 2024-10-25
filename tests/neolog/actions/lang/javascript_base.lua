@@ -195,6 +195,134 @@ local run = function(language)
     end)
   end)
 
+  describe("supports method parameters", function()
+    it("supports plain parameters", function()
+      local input = [[
+        const foo = {
+          bar(ba|z) {
+            return null
+          }
+        }
+      ]]
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = {
+            bar(baz) {
+              console.log("baz", baz)
+              return null
+            }
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
+          const foo = {
+            console.log("baz", baz)
+            bar(baz) {
+              return null
+            }
+          }
+        ]],
+      })
+    end)
+
+    it("supports object destructuring parameters", function()
+      local input = [[
+        const foo = {
+          bar({ baz: ba|z }) {
+            return null
+          }
+        }
+      ]]
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = {
+            bar({ baz: baz }) {
+              console.log("baz", baz)
+              return null
+            }
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
+          const foo = {
+            console.log("baz", baz)
+            bar({ baz: baz }) {
+              return null
+            }
+          }
+        ]],
+      })
+    end)
+
+    it("supports object destructuring shorthand parameters", function()
+      local input = [[
+        const foo = {
+          bar({ ba|z }) {
+            return null
+          }
+        }
+      ]]
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = {
+            bar({ baz }) {
+              console.log("baz", baz)
+              return null
+            }
+          }
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = input,
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "above" })
+        end,
+        expected = [[
+          const foo = {
+            console.log("baz", baz)
+            bar({ baz }) {
+              return null
+            }
+          }
+        ]],
+      })
+    end)
+  end)
+
   describe("supports identifier nested in complex expressions", function()
     it("supports ternary operator", function()
       local input = [[

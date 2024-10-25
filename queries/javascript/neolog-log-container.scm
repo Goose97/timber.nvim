@@ -73,3 +73,8 @@
   body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
   condition: (_) @log_container
 )
+
+(method_definition
+  parameters: (formal_parameters) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
