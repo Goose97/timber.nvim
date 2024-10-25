@@ -307,6 +307,25 @@ local function capture_log_targets(lang, selection_range)
   return result
 end
 
+---@param log_target TSNode
+---@param log_container TSNode
+---@param logable_range logable_range?
+---@param position LogPosition
+---@return integer
+local function get_insert_row(log_target, log_container, logable_range, position)
+  if not logable_range then
+    return position == "above" and log_container:start() or log_container:end_() + 1
+  end
+
+  local srow = log_target:start()
+
+  if srow <= logable_range[1] then
+    return position == "above" and log_container:start() or logable_range[1]
+  else
+    return position == "above" and logable_range[1] or log_container:end_() + 1
+  end
+end
+
 ---@param log_template string
 ---@param lang string
 ---@param position LogPosition
@@ -319,11 +338,6 @@ local function build_capture_log_statements(log_template, lang, position, select
     local log_targets = entry.log_targets
     local log_container = entry.log_container
     local logable_range = entry.logable_range
-    local insert_row = logable_range and logable_range[1]
-      or ({
-        above = log_container:start(),
-        below = log_container:end_() + 1,
-      })[position]
 
     for _, log_target in ipairs(log_targets) do
       local content = resolve_template_placeholders(log_template, {
@@ -335,6 +349,8 @@ local function build_capture_log_statements(log_template, lang, position, select
           return tostring(log_target:start() + 1)
         end,
       })
+
+      local insert_row = get_insert_row(log_target, log_container, logable_range, position)
 
       table.insert(to_insert, {
         content = content,
@@ -503,11 +519,17 @@ end
 --- @param opts InsertLogOptions
 function M.insert_log(opts)
   local cursor_position = vim.fn.getpos(".")
-  opts = vim.tbl_deep_extend(
-    "force",
-    { template = "default", templates = { before = "default", after = "default" } },
-    opts or {}
-  )
+  opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
+
+  if opts.templates then
+    opts.templates = vim.tbl_deep_extend("force", { before = "default", after = "default" }, opts.templates)
+  end
+
+  if opts.position == "surround" and not opts.templates then
+    utils.notify("'templates' must be specified when position is 'surround'", "error")
+    return
+  end
+
   state.current_command_arguments.insert_log = { opts, utils.get_selection_range(), cursor_position }
 
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"

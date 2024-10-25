@@ -120,12 +120,12 @@ describe("lua single log", function()
           actions.insert_log({ position = "above" })
         end,
         expected = [[
+          print("bar", bar)
+          print("baz", baz)
           local function foo(
             bar,
             baz,
           )
-          print("bar", bar)
-          print("baz", baz)
             return nil
           end
         ]],

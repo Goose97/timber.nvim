@@ -130,8 +130,8 @@ local run = function(language)
       ]]
 
       expected = [[
+        console.log("baz", baz)
         function foo(bar, baz) {
-          console.log("baz", baz)
           return null
         }
       ]]
@@ -140,7 +140,7 @@ local run = function(language)
         input = input,
         filetype = language,
         action = function()
-          actions.insert_log({ position = "below" })
+          actions.insert_log({ position = "above" })
         end,
         expected = expected,
       })
@@ -406,6 +406,23 @@ local run = function(language)
         }
       ]],
     })
+
+    helper.assert_scenario({
+      input = input,
+      filetype = language,
+      action = function()
+        vim.cmd("normal! vi(")
+        actions.insert_log({ position = "above" })
+      end,
+      expected = [[
+        console.log("foo", foo)
+        console.log("bar", bar)
+        console.log("baz", baz)
+        if (foo > 1 && bar < baz) {
+          return null
+        }
+      ]],
+    })
   end)
 
   it("supports arguments in call expression", function()
@@ -594,7 +611,7 @@ local run = function(language)
         filetype = language,
         action = function()
           vim.cmd("normal! vi(")
-          actions.insert_log({ position = "below" })
+          actions.insert_log({ position = "above" })
         end,
         expected = [[
           do {
@@ -602,6 +619,26 @@ local run = function(language)
             console.log("bar", bar)
             foo -= 1
           } while (foo > bar)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          do {
+            foo -= 1
+          } while (fo|o > bar)
+        ]],
+        filetype = "javascript",
+        action = function()
+          vim.cmd("normal! vi(")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          do {
+            foo -= 1
+          } while (foo > bar)
+          console.log("foo", foo)
+          console.log("bar", bar)
         ]],
       })
     end)

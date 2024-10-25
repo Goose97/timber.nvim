@@ -621,7 +621,7 @@ describe("neolog.actions.insert_log", function()
         ]],
         filetype = "javascript",
         action = function()
-          actions.insert_log({ position = "surround" })
+          actions.insert_log({ position = "surround", templates = {} })
         end,
         expected = [[
           // Comment
@@ -688,6 +688,28 @@ describe("neolog.actions.insert_log", function()
         expected = function()
           assert.spy(notify_spy).was_called(1)
           assert.spy(notify_spy).was_called_with("'templates' can only be used with position 'surround'", "warn")
+          notify_spy:clear()
+        end,
+      })
+    end)
+
+    it("notifies when position is 'surround' but DOES NOT specify templates", function()
+      neolog.setup()
+
+      local notify_spy = spy.on(utils, "notify")
+      helper.assert_scenario({
+        input = [[
+          // Comment
+          const fo|o = "foo"
+          const bar = "bar"
+        ]],
+        filetype = "javascript",
+        action = function()
+          actions.insert_log({ position = "surround" })
+        end,
+        expected = function()
+          assert.spy(notify_spy).was_called(1)
+          assert.spy(notify_spy).was_called_with("'templates' must be specified when position is 'surround'", "error")
           notify_spy:clear()
         end,
       })
