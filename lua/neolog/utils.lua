@@ -207,6 +207,20 @@ function M.get_selection_range()
   end
 end
 
+---@param mode_type "char" | "line"
+---@return {[1]: number, [2]: number, [3]: number, [4]: number}
+function M.get_operator_selection_range(mode_type)
+  local start_range = vim.fn.getpos("'[")
+  local end_range = vim.fn.getpos("']")
+  if mode_type == "char" then
+    return { start_range[2] - 1, start_range[3] - 1, end_range[2] - 1, end_range[3] - 1 }
+  elseif mode_type == "line" then
+    return { start_range[2] - 1, 0, end_range[2] - 1, vim.v.maxcol }
+  end
+
+  return M.get_selection_range()
+end
+
 ---Given a Treesitter node, return the (0,0)-indexed range of the node
 function M.get_ts_node_range(node)
   local srow, scol, erow, ecol = node:range()

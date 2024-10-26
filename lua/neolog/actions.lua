@@ -16,15 +16,17 @@ local utils = require("neolog.utils")
 
 --- @alias LogPosition "above" | "below" | "surround"
 --- @alias range {[1]: number, [2]: number, [3]: number, [4]: number}
-
----@alias InsertLogArguments {[1]: InsertLogOptions, [2]: range, [3]: range}
+--- @alias cursor_position {[1]: number, [2]: number}
 
 --- @class InsertLogReturn
 --- @field cursor_moved boolean Whether the cursor position was moved
 --- @field inserted_lines integer[] (0-indexed) row numbers of inserted lines
 
 ---@class NeologActionsState
----@field current_command_arguments {insert_log: InsertLogArguments?, insert_batch_log: {[1]: InsertBatchLogOptions}?, add_log_targets_to_batch: {[1]: range}}
+---@field current_command_arguments table
+---@field current_command_arguments.insert_log? {[1]: InsertLogOptions, [2]: range, [3]: range}
+---@field current_command_arguments.insert_batch_log? {[1]: InsertBatchLogOptions, [2]: range?}
+---@field current_command_arguments.add_log_targets_to_batch? {[1]: AddLogTargetsToBatchOptions, [2]: range}
 ---@field current_selection_range {[1]: number, [2]: number, [3]: number, [4]: number}?
 
 ---@type NeologActionsState
@@ -405,8 +407,9 @@ end
 
 ---@param log_template string
 ---@param batch TSNode[]
+---@param insert_line integer
 ---@return LogStatementInsert
-local function build_batch_log_statement(log_template, batch)
+local function build_batch_log_statement(log_template, batch, insert_line)
   local result = log_template
 
   -- First resolve %repeat placeholders
@@ -437,19 +440,19 @@ local function build_batch_log_statement(log_template, batch)
   end
 
   -- Then resolve the rest
-  local current_line = vim.fn.getpos(".")[2]
+  -- local current_line = vim.fn.getpos(".")[2]
   local result1 = resolve_template_placeholders(result, {
     identifier = function()
       utils.notify("Cannot use %identifier placeholder outside %repeat placeholder", "error")
       return "%identifier"
     end,
-    line_number = tostring(current_line + 1),
+    line_number = tostring(insert_line + 1),
   })
 
   return {
     content = result1,
     -- Insert at the line below 0-indexed
-    row = current_line,
+    row = insert_line,
     insert_cursor_offset = nil,
   }
 end
@@ -487,10 +490,17 @@ local function get_lang_log_template(template_set, kind)
   return log_template_lang, lang
 end
 
-function M.__insert_log(_)
+function M.__insert_log(motion_type)
   local opts = state.current_command_arguments.insert_log[1]
-  -- If selection_range or original_cursor_position are nil, it means the user is dot repeating
-  local selection_range = state.current_command_arguments.insert_log[2] or utils.get_selection_range()
+  local selection_range
+
+  if opts.operator then
+    selection_range = utils.get_operator_selection_range(motion_type)
+  else
+    -- If selection_range or original_cursor_position are nil, it means the user is dot repeating
+    selection_range = state.current_command_arguments.insert_log[2] or utils.get_selection_range()
+  end
+
   local original_cursor_position = state.current_command_arguments.insert_log[3] or vim.fn.getpos(".")
 
   local function build_to_insert(template, position)
@@ -537,10 +547,11 @@ end
 --- @field template string? Which template to use. Defaults to `default`
 --- @field templates { before: string, after: string }? Which templates to use for the log statement. Only used when position is `surround`. Defaults to `{ before = "default", after = "default" }`
 --- @field position LogPosition
+--- @field operator? boolean Whether to go into operator mode
 --- @param opts InsertLogOptions
 function M.insert_log(opts)
   local cursor_position = vim.fn.getpos(".")
-  opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
+  opts = vim.tbl_deep_extend("force", { template = "default", operator = false }, opts or {})
 
   if opts.templates then
     opts.templates = vim.tbl_deep_extend("force", { before = "default", after = "default" }, opts.templates)
@@ -554,11 +565,28 @@ function M.insert_log(opts)
   state.current_command_arguments.insert_log = { opts, utils.get_selection_range(), cursor_position }
 
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"
-  vim.cmd("normal! g@l")
+  if opts.operator then
+    return "g@"
+  else
+    vim.cmd("normal! g@l")
+  end
 end
 
-function M.__insert_batch_log(_)
+function M.__insert_batch_log(motion_type)
   local opts = state.current_command_arguments.insert_batch_log[1]
+  local selection_range
+
+  if opts.operator then
+    selection_range = utils.get_operator_selection_range(motion_type)
+  else
+    -- If selection_range or original_cursor_position are nil, it means the user is dot repeating
+    selection_range = state.current_command_arguments.insert_batch_log[2] or utils.get_selection_range()
+  end
+
+  if opts.auto_add then
+    state.current_command_arguments.add_log_targets_to_batch = { { operator = false }, selection_range, nil }
+    M.__add_log_targets_to_batch()
+  end
 
   if #M.batch == 0 then
     utils.notify("Log batch is empty", "warn")
@@ -570,7 +598,8 @@ function M.__insert_batch_log(_)
     return
   end
 
-  local to_insert = build_batch_log_statement(log_template_lang, M.batch)
+  -- Insert 1 line after the selection range
+  local to_insert = build_batch_log_statement(log_template_lang, M.batch, selection_range[3] + 1)
   local inserted_lines, insert_cursor_pos = insert_log_statements({ to_insert })
   after_insert_log_statements(insert_cursor_pos, nil, inserted_lines)
   M.clear_batch()
@@ -582,23 +611,38 @@ end
 --- @class InsertBatchLogOptions
 --- @field template string? Which template to use. Defaults to `default`
 --- @field auto_add? boolean Whether to automatically add the log target to the batch. Defaults to `false`
+--- @field operator? boolean Whether to go into operator mode. If `true`, it implies `auto_add` is `true`
 --- @param opts InsertBatchLogOptions?
 function M.insert_batch_log(opts)
   opts = vim.tbl_deep_extend("force", { template = "default", auto_add = false }, opts or {})
-
-  if opts.auto_add then
-    M.add_log_targets_to_batch()
+  if opts.operator then
+    opts.auto_add = true
   end
 
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_batch_log"
-  state.current_command_arguments.insert_batch_log = { opts }
-  vim.cmd("normal! g@l")
+  state.current_command_arguments.insert_batch_log = { opts, utils.get_selection_range() }
+
+  if opts.operator then
+    return "g@"
+  else
+    vim.cmd("normal! g@l")
+  end
+
+  state.current_command_arguments.insert_batch_log = { opts, nil }
 end
 
 ---Add log target to the log batch
-function M.__add_log_targets_to_batch()
+function M.__add_log_targets_to_batch(motion_type)
   --- nil means the user is dot repeating
-  local selection_range = state.current_command_arguments.add_log_targets_to_batch[1] or utils.get_selection_range()
+  local opts = state.current_command_arguments.add_log_targets_to_batch[1]
+  local selection_range
+
+  if opts.operator then
+    selection_range = utils.get_operator_selection_range(motion_type)
+  else
+    -- If selection_range or original_cursor_position are nil, it means the user is dot repeating
+    selection_range = state.current_command_arguments.add_log_targets_to_batch[2] or utils.get_selection_range()
+  end
 
   local lang = get_lang(vim.bo.filetype)
   if not lang then
@@ -625,15 +669,25 @@ function M.__add_log_targets_to_batch()
 
   -- Prepare for dot repeat. Reset the arguments
   make_dot_repeatable("__add_log_targets_to_batch")
-  state.current_command_arguments.add_log_targets_to_batch = { nil, nil }
 end
 
-function M.add_log_targets_to_batch()
+---@class AddLogTargetsToBatchOptions
+---@field operator? boolean Whether to go into operator mode
+---@param opts AddLogTargetsToBatchOptions?
+function M.add_log_targets_to_batch(opts)
+  opts = vim.tbl_deep_extend("force", { operator = false }, opts or {})
   local cursor_position = vim.fn.getpos(".")
-  state.current_command_arguments.add_log_targets_to_batch = { utils.get_selection_range() }
+  state.current_command_arguments.add_log_targets_to_batch = { opts, utils.get_selection_range(), cursor_position }
 
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__add_log_targets_to_batch"
-  vim.cmd("normal! g@l")
+
+  if opts.operator then
+    return "g@"
+  else
+    vim.cmd("normal! g@l")
+  end
+
+  state.current_command_arguments.add_log_targets_to_batch = { opts, nil, nil }
   vim.fn.setpos(".", cursor_position)
 end
 

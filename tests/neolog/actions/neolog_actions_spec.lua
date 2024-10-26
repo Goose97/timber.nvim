@@ -715,11 +715,59 @@ describe("neolog.actions.insert_log", function()
       })
     end)
   end)
+
+  it("supports operator mode", function()
+    vim.keymap.set("n", "gl", function()
+      return actions.insert_log({ operator = true, position = "below" })
+    end, { expr = true })
+
+    helper.assert_scenario({
+      input = [[
+        function foo(ba|r, baz) {
+          return null
+        }
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal gli(")
+      end,
+      expected = [[
+        function foo(bar, baz) {
+          console.log("bar", bar)
+          console.log("baz", baz)
+          return null
+        }
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        const foo = "foo"
+        const bar = "ba|r"
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal glk")
+      end,
+      expected = [[
+        const foo = "foo"
+        console.log("foo", foo)
+        const bar = "bar"
+        console.log("bar", bar)
+      ]],
+    })
+  end)
 end)
 
 describe("neolog.actions.insert_batch_log", function()
   before_each(function()
-    neolog.setup()
+    neolog.setup({
+      log_templates = {
+        default = {
+          javascript = [[console.log("%identifier", %identifier)]],
+        },
+      },
+    })
     actions.clear_batch()
   end)
 
@@ -775,9 +823,9 @@ describe("neolog.actions.insert_batch_log", function()
       expected = [[
         // Comment
         const foo = "foo"
-        console.log({ "foo": foo, "bar": bar, "baz": baz })
         const bar = "bar"
         const baz = "baz"
+        console.log({ "foo": foo, "bar": bar, "baz": baz })
       ]],
     })
 
@@ -998,6 +1046,48 @@ describe("neolog.actions.insert_batch_log", function()
       })
     end)
   end)
+
+  it("supports operator mode", function()
+    vim.keymap.set("n", "gl", function()
+      return actions.insert_batch_log({ operator = true })
+    end, { expr = true })
+
+    helper.assert_scenario({
+      input = [[
+        function foo(ba|r, baz) {
+          return null
+        }
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal gli(")
+      end,
+      expected = [[
+        function foo(bar, baz) {
+          console.log({ "bar": bar, "baz": baz })
+          return null
+        }
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        const foo = "foo"
+        const bar = "ba|r"
+        const baz = "baz"
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal glip")
+      end,
+      expected = [[
+        const foo = "foo"
+        const bar = "bar"
+        const baz = "baz"
+        console.log({ "foo": foo, "bar": bar, "baz": baz })
+      ]],
+    })
+  end)
 end)
 
 describe("neolog.actions.add_log_targets_to_batch", function()
@@ -1087,5 +1177,26 @@ describe("neolog.actions.add_log_targets_to_batch", function()
         end,
       })
     end)
+  end)
+
+  it("supports operator mode", function()
+    vim.keymap.set("n", "gl", function()
+      return actions.add_log_targets_to_batch({ operator = true })
+    end, { expr = true })
+
+    helper.assert_scenario({
+      input = [[
+        const fo|oooo = "foo"
+        const barrrrr = "bar"
+        const bazzzzz = "baz"
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal glip")
+      end,
+      expected = function()
+        assert.are.same(3, actions.get_batch_size())
+      end,
+    })
   end)
 end)
