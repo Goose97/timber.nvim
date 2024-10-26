@@ -71,7 +71,6 @@ end
 
 --- Build the log statement from template. Support special placeholers:
 ---   %identifier: the identifier text
----   %fn_name: the enclosing function name. If there's none, replaces with empty string
 ---   %line_number: the line_number number
 ---   %insert_cursor: after inserting the log statement, go to insert mode and place the cursor here.
 ---     If there's multiple log statements, choose the first one
@@ -162,7 +161,6 @@ local function insert_log_statements(statements)
     offset = offset + #lines
 
     for i = 0, #lines - 1, 1 do
-      -- indent_line_number(insert_line + i)
       table.insert(inserted_lines, insert_line + i)
     end
   end
@@ -561,8 +559,6 @@ end
 
 function M.__insert_batch_log(_)
   local opts = state.current_command_arguments.insert_batch_log[1]
-  -- nil means the user is dot repeating
-  opts = vim.tbl_deep_extend("force", { template = "default" }, opts or {})
 
   if #M.batch == 0 then
     utils.notify("Log batch is empty", "warn")
@@ -585,8 +581,15 @@ end
 --- Insert log statement for given batch
 --- @class InsertBatchLogOptions
 --- @field template string? Which template to use. Defaults to `default`
+--- @field auto_add? boolean Whether to automatically add the log target to the batch. Defaults to `false`
 --- @param opts InsertBatchLogOptions?
 function M.insert_batch_log(opts)
+  opts = vim.tbl_deep_extend("force", { template = "default", auto_add = false }, opts or {})
+
+  if opts.auto_add then
+    M.add_log_targets_to_batch()
+  end
+
   vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_batch_log"
   state.current_command_arguments.insert_batch_log = { opts }
   vim.cmd("normal! g@l")

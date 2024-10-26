@@ -4,7 +4,8 @@
 ---@field on_insert boolean
 ---@field hl_insert integer
 ---@field hl_add_to_batch integer
----@field timer any
+---@field insert_hl_timer any
+---@field add_to_batch_hl_timer any
 local M = {}
 
 ---@param log_target TSNode
@@ -23,7 +24,7 @@ function M.highlight_add_to_batch(log_target)
     { regtype = "v", inclusive = false }
   )
 
-  M.timer:start(
+  M.add_to_batch_hl_timer:start(
     M.duration,
     0,
     vim.schedule_wrap(function()
@@ -48,7 +49,7 @@ function M.highlight_insert(start_line_number, end_line_number)
     { regtype = "V", inclusive = false }
   )
 
-  M.timer:start(
+  M.insert_hl_timer:start(
     M.duration,
     0,
     vim.schedule_wrap(function()
@@ -65,7 +66,8 @@ function M.setup(opts)
 
   M.hl_insert = vim.api.nvim_create_namespace("neolog.insert_log")
   M.hl_add_to_batch = vim.api.nvim_create_namespace("neolog.add_to_batch")
-  M.timer = vim.uv.new_timer()
+  M.insert_hl_timer = vim.uv.new_timer()
+  M.add_to_batch_hl_timer = vim.uv.new_timer()
 
   vim.api.nvim_set_hl(0, "NeologInsert", { link = "Search", default = true })
   vim.api.nvim_set_hl(0, "NeologAddToBatch", { link = "Search", default = true })

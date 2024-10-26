@@ -759,6 +759,48 @@ describe("neolog.actions.insert_batch_log", function()
     })
   end)
 
+  it("supports insert batch log with auto_add", function()
+    helper.assert_scenario({
+      input = [[
+        // Comment
+        const foo = "foo"
+        const bar = "bar"
+        const ba|z = "baz"
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! V2k")
+        actions.insert_batch_log({ auto_add = true })
+      end,
+      expected = [[
+        // Comment
+        const foo = "foo"
+        console.log({ "foo": foo, "bar": bar, "baz": baz })
+        const bar = "bar"
+        const baz = "baz"
+      ]],
+    })
+
+    helper.assert_scenario({
+      input = [[
+        function foo(bar, ba|z) {
+          return null
+        }
+      ]],
+      filetype = "javascript",
+      action = function()
+        vim.cmd("normal! V")
+        actions.insert_batch_log({ auto_add = true })
+      end,
+      expected = [[
+        function foo(bar, baz) {
+          console.log({ "bar": bar, "baz": baz })
+          return null
+        }
+      ]],
+    })
+  end)
+
   it("exits Visual mode after adding targets to the batch", function()
     local input = [[
       // Comment
