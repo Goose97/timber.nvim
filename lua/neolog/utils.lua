@@ -319,4 +319,15 @@ function M.notify(message, level)
   vim.api.nvim_echo(message_with_hl, true, {})
 end
 
+---@param filetype string
+---@return string?
+function M.get_lang(filetype)
+  -- Treesitter doesn't support jsx directly but through tsx
+  if filetype == "javascriptreact" then
+    return "tsx"
+  end
+
+  return vim.treesitter.language.get_lang(vim.bo.filetype)
+end
+
 return M

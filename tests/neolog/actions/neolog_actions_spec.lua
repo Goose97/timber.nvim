@@ -717,6 +717,11 @@ describe("neolog.actions.insert_log", function()
   end)
 
   it("supports operator mode", function()
+    require("neolog.config").reset_default_key_mappings()
+    neolog.setup({
+      enable_default_keymaps = false,
+    })
+
     vim.keymap.set("n", "gl", function()
       return actions.insert_log({ operator = true, position = "below" })
     end, { expr = true })
@@ -1048,6 +1053,11 @@ describe("neolog.actions.insert_batch_log", function()
   end)
 
   it("supports operator mode", function()
+    require("neolog.config").reset_default_key_mappings()
+    neolog.setup({
+      enable_default_keymaps = false,
+    })
+
     vim.keymap.set("n", "gl", function()
       return actions.insert_batch_log({ operator = true })
     end, { expr = true })
@@ -1180,6 +1190,11 @@ describe("neolog.actions.add_log_targets_to_batch", function()
   end)
 
   it("supports operator mode", function()
+    require("neolog.config").reset_default_key_mappings()
+    neolog.setup({
+      enable_default_keymaps = false,
+    })
+
     vim.keymap.set("n", "gl", function()
       return actions.add_log_targets_to_batch({ operator = true })
     end, { expr = true })

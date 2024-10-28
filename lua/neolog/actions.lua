@@ -1,9 +1,8 @@
 ---@class NeologActions
---- @field log_templates { [string]: NeologLogTemplates }
---- @field batch_log_templates { [string]: NeologLogTemplates }
 --- @field batch TSNode[]
-local M = { log_templates = {}, batch_log_templates = {}, batch = {} }
+local M = { batch = {} }
 
+local config = require("neolog.config")
 local highlight = require("neolog.highlight")
 local treesitter = require("neolog.actions.treesitter")
 local utils = require("neolog.utils")
@@ -209,17 +208,6 @@ local function after_insert_log_statements(insert_cursor_pos, original_cursor_po
       vim.fn.setpos(".", original_cursor_position)
     end, 0)
   end
-end
-
----@param filetype string
----@return string?
-local function get_lang(filetype)
-  -- Treesitter doesn't support jsx directly but through tsx
-  if filetype == "javascriptreact" then
-    return "tsx"
-  end
-
-  return vim.treesitter.language.get_lang(vim.bo.filetype)
 end
 
 ---Group log targets that overlap with each other
@@ -457,39 +445,6 @@ local function build_batch_log_statement(log_template, batch, insert_line)
   }
 end
 
----@param template_set string
----@param kind "single" | "batch"
----@return string?, string?
-local function get_lang_log_template(template_set, kind)
-  local lang = get_lang(vim.bo.filetype)
-  if not lang then
-    utils.notify("Treesitter cannot determine language for current buffer", "error")
-    return
-  end
-
-  local log_template_set = (kind == "single" and M.log_templates or M.batch_log_templates)[template_set]
-  if not log_template_set then
-    utils.notify(string.format("Log template '%s' is not found", template_set), "error")
-    return
-  end
-
-  local log_template_lang = log_template_set[lang]
-  if not log_template_lang then
-    utils.notify(
-      string.format(
-        "%s '%s' does not have '%s' language template",
-        kind == "single" and "Log template" or "Batch log template",
-        template_set,
-        lang
-      ),
-      "error"
-    )
-    return
-  end
-
-  return log_template_lang, lang
-end
-
 function M.__insert_log(motion_type)
   local opts = state.current_command_arguments.insert_log[1]
   local selection_range
@@ -504,7 +459,7 @@ function M.__insert_log(motion_type)
   local original_cursor_position = state.current_command_arguments.insert_log[3] or vim.fn.getpos(".")
 
   local function build_to_insert(template, position)
-    local log_template_lang, lang = get_lang_log_template(template, "single")
+    local log_template_lang, lang = config.get_lang_log_template(template, "single")
 
     if not log_template_lang or not lang then
       return {}
@@ -593,7 +548,7 @@ function M.__insert_batch_log(motion_type)
     return
   end
 
-  local log_template_lang, lang = get_lang_log_template(opts.template, "batch")
+  local log_template_lang, lang = config.get_lang_log_template(opts.template, "batch")
   if not log_template_lang or not lang then
     return
   end
@@ -644,7 +599,7 @@ function M.__add_log_targets_to_batch(motion_type)
     selection_range = state.current_command_arguments.add_log_targets_to_batch[2] or utils.get_selection_range()
   end
 
-  local lang = get_lang(vim.bo.filetype)
+  local lang = utils.get_lang(vim.bo.filetype)
   if not lang then
     utils.notify("Treesitter cannot determine language for current buffer", "error")
     return
@@ -699,13 +654,7 @@ function M.clear_batch()
   M.batch = {}
 end
 
--- Register the custom predicate
----@param templates { [string]: NeologLogTemplates }
----@param batch_templates { [string]: NeologLogTemplates }
-function M.setup(templates, batch_templates)
-  M.log_templates = templates
-  M.batch_log_templates = batch_templates
-
+function M.setup()
   treesitter.setup()
 end
 

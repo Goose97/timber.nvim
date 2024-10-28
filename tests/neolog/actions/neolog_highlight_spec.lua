@@ -1,12 +1,14 @@
 local assert = require("luassert")
 local neolog = require("neolog")
 local highlight = require("neolog.highlight")
+local config = require("neolog.config")
 local helper = require("tests.neolog.helper")
 
 describe("neolog.highlight.highlight_add_to_batch", function()
   describe("on_add_to_batch is TRUE", function()
     it("highlights the given node", function()
-      highlight.setup({ duration = 100, on_add_to_batch = true })
+      config.setup({ highlight = { duration = 100, on_add_to_batch = true } })
+      highlight.setup()
 
       helper.assert_scenario({
         input = [[
@@ -51,7 +53,8 @@ describe("neolog.highlight.highlight_add_to_batch", function()
     end)
 
     it("remove the highlight after the configured duration", function()
-      neolog.setup({ duration = 500, on_add_to_batch = true })
+      config.setup({ highlight = { duration = 500, on_add_to_batch = true } })
+      neolog.setup()
 
       helper.assert_scenario({
         input = [[
@@ -92,7 +95,8 @@ describe("neolog.highlight.highlight_add_to_batch", function()
 
   describe("on_add_to_batch is FALSE", function()
     it("DOES NOT highlight the given node", function()
-      highlight.setup({ duration = 100, on_add_to_batch = false })
+      config.setup({ highlight = { duration = 100, on_add_to_batch = false } })
+      highlight.setup()
 
       helper.assert_scenario({
         input = [[
@@ -134,7 +138,8 @@ end)
 describe("neolog.highlight.highlight_insert", function()
   describe("on_insert is TRUE", function()
     it("highlights the given line number", function()
-      highlight.setup({ duration = 100, on_insert = true })
+      config.setup({ highlight = { duration = 100, on_insert = true } })
+      highlight.setup()
 
       helper.assert_scenario({
         input = [[
@@ -165,7 +170,8 @@ describe("neolog.highlight.highlight_insert", function()
     end)
 
     it("remove the highlight after the configured duration", function()
-      highlight.setup({ duration = 500, on_insert = true })
+      config.setup({ highlight = { duration = 500, on_insert = true } })
+      highlight.setup()
 
       helper.assert_scenario({
         input = [[
@@ -193,7 +199,8 @@ describe("neolog.highlight.highlight_insert", function()
 
   describe("on_insert is FALSE", function()
     it("DOES NOT highlight the given line number", function()
-      highlight.setup({ duration = 100, on_insert = false })
+      config.setup({ highlight = { duration = 100, on_insert = false } })
+      highlight.setup()
 
       helper.assert_scenario({
         input = [[
