@@ -8,8 +8,8 @@ local utils = require("neolog.utils")
 ---@field on_add_to_batch? boolean Whether to highlight the log target when adding to the batch. Defaults to `true`
 ---@field duration number The timeout in ms for highlighting
 
----@alias NeologAction 'insert_log_below' | 'insert_log_above' | 'insert_log_surround' | 'insert_batch_log' | 'add_log_targets_to_batch'
----@alias NeologOperator 'insert_log_below_operator' | 'insert_log_above_operator' | 'insert_log_surround_operator' | 'insert_batch_log_operator' | 'add_log_targets_to_batch_operator'
+---@alias NeologAction 'insert_log_below' | 'insert_log_above' | 'insert_batch_log' | 'add_log_targets_to_batch'
+---@alias NeologOperator 'insert_log_below_operator' | 'insert_log_above_operator' | 'insert_batch_log_operator' | 'add_log_targets_to_batch_operator'
 
 ---@class NeologConfig
 ---@field log_templates { [string]: NeologLogTemplates }
@@ -46,7 +46,6 @@ local default_config = {
   keymaps = {
     insert_log_below = "glj",
     insert_log_above = "glk",
-    insert_log_surround = "gls",
     insert_batch_log = "glb",
     add_log_targets_to_batch = "gla",
     insert_log_below_operator = "g<S-l>j",
@@ -55,6 +54,9 @@ local default_config = {
     add_log_targets_to_batch_operator = "g<S-l>a",
   },
   default_keymaps_enabled = true,
+  log_watcher = {
+    enabled = false,
+  },
 }
 
 ---@class NeologConfigModule
@@ -122,12 +124,6 @@ local function setup_keymaps()
     })
   end, { mode = { "n", "v" } })
 
-  setup_keymap("insert_log_surround", "gls", function()
-    require("neolog.actions").insert_log({
-      position = "surround",
-    })
-  end, { mode = { "n", "v" } })
-
   setup_keymap("insert_batch_log", "glb", function()
     require("neolog.actions").insert_batch_log()
   end, { mode = "n" })
@@ -153,13 +149,6 @@ local function setup_keymaps()
       operator = true,
     })
   end, { mode = "n" })
-
-  setup_keymap("insert_log_surround_operator", "g<S-l>s", function()
-    return require("neolog.actions").insert_log({
-      position = "surround",
-      operator = true,
-    })
-  end, { mode = "n" })
 end
 
 -- This function is used during testing
@@ -174,12 +163,10 @@ function M.reset_default_key_mappings()
 
   reset_keymap("glj", { "n", "v" })
   reset_keymap("glk", { "n", "v" })
-  reset_keymap("gls", { "n", "v" })
   reset_keymap("gla", { "n", "v" })
   reset_keymap("glb", { "n", "v" })
   reset_keymap("g<S-l>j", { "n" })
   reset_keymap("g<S-l>k", { "n" })
-  reset_keymap("g<S-l>s", { "n" })
   reset_keymap("g<S-l>a", { "n" })
   reset_keymap("g<S-l>b", { "n" })
 end
