@@ -16,7 +16,7 @@ local utils = require("neolog.utils")
 ---@field batch_log_templates { [string]: NeologLogTemplates }
 ---@field highlight NeologHighlightConfig
 ---@field keymaps { [NeologAction | NeologOperator]: string }
----@field enable_default_keymaps boolean Whether to enable default keymaps. Defaults to `true`
+---@field default_keymaps_enabled boolean Whether to enable default keymaps. Defaults to `true`
 
 ---@type NeologConfig
 local default_config = {
@@ -54,7 +54,7 @@ local default_config = {
     insert_batch_log_operator = "g<S-l>b",
     add_log_targets_to_batch_operator = "g<S-l>a",
   },
-  enable_default_keymaps = true,
+  default_keymaps_enabled = true,
 }
 
 ---@class NeologConfigModule
@@ -188,10 +188,10 @@ end
 function M.setup(config)
   local base_config = vim.deepcopy(default_config)
   local user_config = config or {}
-  local enable_default_keymaps = user_config.enable_default_keymaps == nil and base_config.enable_default_keymaps
-    or user_config.enable_default_keymaps
+  local default_keymaps_enabled = user_config.default_keymaps_enabled == nil and base_config.default_keymaps_enabled
+    or user_config.default_keymaps_enabled
 
-  if not enable_default_keymaps then
+  if not default_keymaps_enabled then
     base_config.keymaps = {}
   end
 

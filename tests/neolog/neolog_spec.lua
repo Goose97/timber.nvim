@@ -40,7 +40,7 @@ describe("neolog", function()
       require("neolog.config").reset_default_key_mappings()
     end)
 
-    it("setups default keymaps when `enable_default_keymaps` is not specified", function()
+    it("setups default keymaps when `default_keymaps_enabled` is not specified", function()
       neolog.setup({
         log_templates = {
           default = {
@@ -74,7 +74,7 @@ describe("neolog", function()
       })
     end)
 
-    it("setups default keymaps when `enable_default_keymaps` is true", function()
+    it("setups default keymaps when `default_keymaps_enabled` is true", function()
       neolog.setup({
         log_templates = {
           default = {
@@ -86,7 +86,7 @@ describe("neolog", function()
             typescript = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
           },
         },
-        enable_default_keymaps = true,
+        default_keymaps_enabled = true,
       })
 
       helper.assert_scenario({
@@ -109,7 +109,7 @@ describe("neolog", function()
       })
     end)
 
-    it("setups default keymaps when `enable_default_keymaps` is false", function()
+    it("setups default keymaps when `default_keymaps_enabled` is false", function()
       neolog.setup({
         log_templates = {
           default = {
@@ -121,7 +121,7 @@ describe("neolog", function()
             typescript = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
           },
         },
-        enable_default_keymaps = false,
+        default_keymaps_enabled = false,
       })
 
       helper.assert_scenario({
