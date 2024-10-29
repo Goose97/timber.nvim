@@ -3,7 +3,7 @@
 ; Not function name in call expression foo(bar)
 (
   (identifier) @log_target
-  (#not-field-of-ancestor? @log_target call_expression function)
+  (#not-field-of-parent? @log_target call_expression function)
   ; This one is for typescript, but let's keep it here for now
   (#not-field-of-ancestor? @log_target call_expression type_arguments)
 )
@@ -23,5 +23,5 @@
     (member_expression)
     (subscript_expression)
   ]) @log_target
-  (#not-field-of-ancestor? @log_target call_expression function)
+  (#not-field-of-parent? @log_target call_expression function)
 )

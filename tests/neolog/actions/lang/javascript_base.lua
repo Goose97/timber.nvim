@@ -734,6 +734,7 @@ local run = function(language)
       end,
       expected = [[
         foo.bar(baz)
+        console.log("foo", foo)
         console.log("baz", baz)
       ]],
     })
@@ -749,6 +750,7 @@ local run = function(language)
       end,
       expected = [[
         foo.bar(baz).then(baf)
+        console.log("foo", foo)
         console.log("baz", baz)
         console.log("baf", baf)
       ]],
@@ -1127,24 +1129,6 @@ local run = function(language)
       })
     end)
 
-    it("DOES NOT support dot member access as function in call expression", function()
-      helper.assert_scenario({
-        input = [[
-          const foo = bar.bar1.bar2(ba|z.baz1)
-        ]],
-        filetype = language,
-        action = function()
-          vim.cmd("normal! V")
-          actions.insert_log({ position = "below" })
-        end,
-        expected = [[
-          const foo = bar.bar1.bar2(baz.baz1)
-          console.log("foo", foo)
-          console.log("baz.baz1", baz.baz1)
-        ]],
-      })
-    end)
-
     it("supports bracket member access", function()
       helper.assert_scenario({
         input = [[
@@ -1202,24 +1186,6 @@ local run = function(language)
           const foo = bar["bar"]
           console.log("foo", foo)
           console.log("bar["bar"]", bar["bar"])
-        ]],
-      })
-    end)
-
-    it("DOES NOT support bracket member access as function in call expression", function()
-      helper.assert_scenario({
-        input = [[
-          const foo = bar["bar1"]["bar2"](ba|z.baz1)
-        ]],
-        filetype = language,
-        action = function()
-          vim.cmd("normal! V")
-          actions.insert_log({ position = "below" })
-        end,
-        expected = [[
-          const foo = bar["bar1"]["bar2"](baz.baz1)
-          console.log("foo", foo)
-          console.log("baz.baz1", baz.baz1)
         ]],
       })
     end)
