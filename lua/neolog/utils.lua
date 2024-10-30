@@ -102,6 +102,11 @@ function M.get_key_by_value(t, value)
   return nil
 end
 
+function M.string_left_pad(str, len, char)
+  char = char or " "
+  return string.rep(char, len - #str) .. str
+end
+
 function M.dump(o, nest)
   nest = nest or 2
   if type(o) == "table" then

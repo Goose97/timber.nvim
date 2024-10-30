@@ -68,9 +68,8 @@ local function relative_time(timestamp)
 end
 
 ---@param log_placeholder LogPlaceholder
-local function render_placeholder_content(log_placeholder)
-  -- TODO: Support multiple log entries. Right now, let's render only the latest one
-  local content = log_placeholder.contents[1]
+local function render_placeholder_snippet(log_placeholder)
+  local content = log_placeholder.contents[#log_placeholder.contents]
   if not content then
     return
   end
@@ -184,12 +183,11 @@ function M.on_log_entry_received(entry)
   if log_placeholder then
     table.insert(
       log_placeholder.contents,
-      1,
       { body = entry.payload, source_name = entry.source_name, timestamp = entry.timestamp }
     )
 
     vim.schedule(function()
-      render_placeholder_content(log_placeholder)
+      render_placeholder_snippet(log_placeholder)
     end)
   else
     -- Save the log entry for later
@@ -237,14 +235,55 @@ function M.new_log_placeholder(log_placeholder)
   end)
 end
 
+---@param contents LogPlaceholderContent[]
+---@return string[] lines
+---@return integer[] separators 0-indexed line numbers of separator lines
+---@return boolean has_total_entries
+local function prepare_floating_window_content(contents)
+  local entry_lines = {}
+  for _, content in ipairs(contents) do
+    table.insert(entry_lines, vim.split(content.body, "\n"))
+  end
+
+  -- Get the max width of the content
+  local max_width = 0
+  for _, lines in ipairs(entry_lines) do
+    for _, line in ipairs(lines) do
+      max_width = math.max(max_width, #line)
+    end
+  end
+
+  local has_total_entries = #contents > 1
+  local buf_content = {}
+  local separators = {}
+  local line_count = 0
+
+  if has_total_entries then
+    table.insert(buf_content, utils.string_left_pad(string.format("Total entries: %d", #contents), max_width))
+    line_count = line_count + 1
+  end
+
+  for i, lines in ipairs(entry_lines) do
+    vim.list_extend(buf_content, lines)
+    line_count = line_count + #lines
+
+    if i < #contents then
+      table.insert(buf_content, string.rep("─", max_width))
+      table.insert(separators, line_count)
+      line_count = line_count + 1
+    end
+  end
+
+  return buf_content, separators, has_total_entries
+end
+
 ---Render a floating window showing placeholder content
 ---@param placeholder LogPlaceholder
 ---@param opts? { silent?: boolean }
 local function show_placeholder_full_content(placeholder, opts)
   opts = vim.tbl_extend("force", { silent = false }, opts or {})
 
-  local content = placeholder.contents and placeholder.contents[1]
-  if not content then
+  if not placeholder.contents or #placeholder.contents == 0 then
     if not opts.silent then
       utils.notify("Log placeholder has no content", "warn")
     end
@@ -252,34 +291,28 @@ local function show_placeholder_full_content(placeholder, opts)
     return
   end
 
-  local lines = vim.split(content.body, "\n")
-  local win_width = vim.api.nvim_win_get_width(0)
-  local win_height = vim.api.nvim_win_get_height(0)
-
-  local content_width = 0
-  for _, line in ipairs(lines) do
-    content_width = math.max(content_width, #line)
-  end
-
-  -- Window width equals to the max of content width, clamp between 20 columns and 50% of screen width
-  local width = math.min(math.max(content_width, 20), math.floor(win_width * 0.5))
-  -- Window height equals to the min of the number of lines, up to 80% of screen height
-  local height = math.min(#lines, math.floor(win_height * 0.8))
+  local lines, separators, has_total_entries = prepare_floating_window_content(placeholder.contents)
 
   local window_config = {
     relative = "cursor",
     anchor = "SW",
     row = 0,
     col = 0,
-    height = height,
-    width = width,
     focusable = true,
     style = "minimal",
     border = "single",
-    title = content.source_name,
+    title = placeholder.contents[1].source_name,
   }
 
-  vim.lsp.util.open_floating_preview(lines, "plaintext", window_config)
+  local bufnr = vim.lsp.util.open_floating_preview(lines, "plaintext", window_config)
+
+  if has_total_entries then
+    vim.api.nvim_buf_add_highlight(bufnr, M.log_placeholder_ns, "Neolog.LogPlaceholderTotalEntries", 0, 0, -1)
+  end
+
+  for _, i in ipairs(separators) do
+    vim.api.nvim_buf_add_highlight(bufnr, M.log_placeholder_ns, "Neolog.LogPlaceholderSeparator", i, 0, -1)
+  end
 end
 
 ---@param opts? { silent?: boolean }
@@ -307,13 +340,15 @@ end
 
 local function update_placeholders_snippet()
   for _, log_placeholder in pairs(M.log_placeholders) do
-    render_placeholder_content(log_placeholder)
+    render_placeholder_snippet(log_placeholder)
   end
 end
 
 function M.setup()
   vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderSnippet", { link = "DiagnosticVirtualTextInfo", default = true })
   vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderTime", { italic = true })
+  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderTotalEntries", { link = "CursorLineNr" })
+  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderSeparator", { link = "FloatBorder" })
 
   M.log_placeholder_ns = vim.api.nvim_create_namespace("neolog.log_placeholder")
 
