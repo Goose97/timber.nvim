@@ -11,6 +11,7 @@ local utils = require("neolog.utils")
 ---@class NeologWatcherConfig
 ---@field enabled? boolean Whether to enable log watcher. Defaults to `false`
 ---@field sources SourceSpecs The sources to watch
+---@field preview_snippet_length? integer The length of the preview snippet display as extmarks. Defaults to `32`
 
 ---@alias NeologAction 'insert_log_below' | 'insert_log_above' | 'insert_batch_log' | 'add_log_targets_to_batch'
 ---@alias NeologOperator 'insert_log_below_operator' | 'insert_log_above_operator' | 'insert_batch_log_operator' | 'add_log_targets_to_batch_operator'
@@ -62,6 +63,7 @@ local default_config = {
   log_watcher = {
     enabled = false,
     sources = {},
+    preview_snippet_length = 32,
   },
 }
 

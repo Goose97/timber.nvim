@@ -1,6 +1,5 @@
 local Job = require("plenary.job")
 local watcher = require("neolog.watcher")
-local utils = require("neolog.utils")
 
 local M = {}
 
@@ -50,11 +49,7 @@ function SourceFilesystem:ingest(line)
     if match then
       local remaining = string.sub(line, 1, -(string.len(match) + 1))
       table.insert(buffer, remaining)
-      self.on_log_capture({
-        source_name = self.name,
-        log_placeholder_id = pending_log_item,
-        payload = table.concat(buffer, "\n"),
-      })
+      self.on_log_capture(pending_log_item, table.concat(buffer, "\n"))
       self:reset()
     else
       table.insert(buffer, line)

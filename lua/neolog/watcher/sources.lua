@@ -17,7 +17,14 @@ local M = { sources = {} }
 function M.setup(opts)
   for _, source in ipairs(opts.sources) do
     local source_module = require("neolog.watcher.sources." .. source.type)
-    local source_instance = source_module.new(source, opts.on_log_capture)
+    local source_instance = source_module.new(source, function(placeholder_id, payload)
+      opts.on_log_capture({
+        log_placeholder_id = placeholder_id,
+        payload = payload,
+        source_name = source.name,
+        timestamp = os.time(),
+      })
+    end)
 
     source_instance:start()
     table.insert(M.sources, source_instance)

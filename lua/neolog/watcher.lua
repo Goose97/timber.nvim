@@ -2,6 +2,7 @@
 ---@field log_placeholder_id string
 ---@field payload string
 ---@field source_name string
+---@field timestamp integer
 
 local sources = require("neolog.watcher.sources")
 local buffers = require("neolog.buffers")
@@ -42,7 +43,6 @@ function M.setup(source_specs)
   sources.setup({
     sources = source_specs,
     on_log_capture = function(log_entry)
-      vim.notify(log_entry.payload)
       buffers.on_log_entry_received(log_entry)
     end,
   })

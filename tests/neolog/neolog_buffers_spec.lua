@@ -1,5 +1,6 @@
 local assert = require("luassert")
 local spy = require("luassert.spy")
+local neolog = require("neolog")
 local buffers = require("neolog.buffers")
 local watcher = require("neolog.watcher")
 local utils = require("neolog.utils")
@@ -10,7 +11,7 @@ local function get_extmarks(line, details)
   local bufnr = vim.api.nvim_get_current_buf()
   return vim.api.nvim_buf_get_extmarks(
     bufnr,
-    buffers.hl_log_placeholder,
+    buffers.log_placeholder_ns,
     { line, 0 },
     { line, -1 },
     { details = details }
@@ -223,7 +224,8 @@ describe("neolog.buffers.on_log_entry_received", function()
   end)
 
   describe("given the log entry has a corresponding placeholder", function()
-    it("renders the entry payload", function()
+    it("renders the placeholder preview snippet", function()
+      neolog.setup()
       local id = watcher.generate_unique_id()
 
       helper.assert_scenario({
@@ -240,21 +242,79 @@ describe("neolog.buffers.on_log_entry_received", function()
         filetype = "typescript",
         action = function()
           helper.wait(20)
-          buffers.on_log_entry_received({ log_placeholder_id = id, payload = "foo", source_name = "Test" })
+          buffers.on_log_entry_received({
+            log_placeholder_id = id,
+            payload = "foo",
+            source_name = "Test",
+            timestamp = os.time(),
+          })
           helper.wait(20)
         end,
         expected = function()
           local marks = get_extmarks(1, true)
           local snippet = marks[1][4].virt_text[1][1]
+          local snippet_time = marks[1][4].virt_text[2][1]
 
           assert.equals(#marks, 1)
           assert.is.Not.Nil(string.find(snippet, "foo"))
+          assert.equals(vim.trim(snippet_time), "Just now")
         end,
       })
     end)
 
-    describe("given the payload is longer than 16 characters", function()
-      it("renders the first 16 characters", function()
+    it("uses the latest entry as the placeholder preview snippet", function()
+      neolog.setup()
+      local id = watcher.generate_unique_id()
+
+      helper.assert_scenario({
+        input = string.format(
+          [[
+            const foo = "bar"
+            console.log("%s%s|")
+            const bar = "foo"
+          ]],
+          watcher.MARKER,
+          id
+        ),
+        input_cursor = false,
+        filetype = "typescript",
+        action = function()
+          helper.wait(20)
+          buffers.on_log_entry_received({
+            log_placeholder_id = id,
+            payload = "foo",
+            source_name = "Test",
+            timestamp = os.time(),
+          })
+          helper.wait(20)
+          buffers.on_log_entry_received({
+            log_placeholder_id = id,
+            payload = "bar",
+            source_name = "Test",
+            timestamp = os.time(),
+          })
+          helper.wait(20)
+        end,
+        expected = function()
+          local marks = get_extmarks(1, true)
+          local snippet = marks[1][4].virt_text[1][1]
+          local snippet_time = marks[1][4].virt_text[2][1]
+
+          assert.equals(#marks, 1)
+          assert.is.Not.Nil(string.find(snippet, "bar"))
+          assert.equals(vim.trim(snippet_time), "Just now")
+        end,
+      })
+    end)
+
+    describe("given the payload is longer than `log_watcher.preview_snippet_length` characters", function()
+      it("renders the first `log_watcher.preview_snippet_length` characters", function()
+        neolog.setup({
+          log_watcher = {
+            preview_snippet_length = 8,
+          },
+        })
+
         local id = watcher.generate_unique_id()
 
         helper.assert_scenario({
@@ -275,6 +335,7 @@ describe("neolog.buffers.on_log_entry_received", function()
               log_placeholder_id = id,
               payload = "foo_123456789_123456890",
               source_name = "Test",
+              timestamp = os.time(),
             })
             helper.wait(20)
           end,
@@ -283,7 +344,7 @@ describe("neolog.buffers.on_log_entry_received", function()
             local snippet = marks[1][4].virt_text[1][1]
 
             assert.equals(#marks, 1)
-            assert.is.Not.Nil(string.find(snippet, "foo_123456789_12"))
+            assert.is.Not.Nil(string.find(snippet, "foo_1234"))
           end,
         })
       end)
@@ -292,8 +353,14 @@ describe("neolog.buffers.on_log_entry_received", function()
 
   describe("given the log entry has NO corresponding placeholder", function()
     it("saves the log entry and renders it once the placeholder is created", function()
+      neolog.setup()
       local id = watcher.generate_unique_id()
-      buffers.on_log_entry_received({ log_placeholder_id = id, payload = "foo", source_name = "Test" })
+      buffers.on_log_entry_received({
+        log_placeholder_id = id,
+        payload = "foo",
+        source_name = "Test",
+        timestamp = os.time(),
+      })
 
       helper.assert_scenario({
         input = string.format(
@@ -349,6 +416,7 @@ describe("neolog.buffers.open_float", function()
               log_placeholder_id = id,
               payload = "foo_123456789_123456890",
               source_name = "Test",
+              timestamp = os.time(),
             })
             -- Open the float window, and focus to it
             vim.cmd("normal! 2G")
@@ -387,6 +455,7 @@ describe("neolog.buffers.open_float", function()
               log_placeholder_id = id,
               payload = "foo_123456789_123456890",
               source_name = "Test",
+              timestamp = os.time(),
             })
             -- Open the float window, and focus to it
             vim.cmd("normal! 2G")

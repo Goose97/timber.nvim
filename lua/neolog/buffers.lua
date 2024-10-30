@@ -5,6 +5,7 @@ local utils = require("neolog.utils")
 ---@class LogPlaceholderContent
 ---@field body string
 ---@field source_name string
+---@field timestamp integer
 
 ---@class LogPlaceholder
 ---@field id LogPlaceholderId
@@ -20,6 +21,7 @@ local utils = require("neolog.utils")
 ---@field seen_buffers integer[] Buffers has been opened and processed
 ---@field attached_buffers integer[] Buffers currently being attached to
 ---@field pending_log_entries WatcherLogEntry[] Log entries that didn't have a corresponding placeholder. They will be processed once the placeholder is created
+---@field placeholder_render_timer any Timer to keep updating the placeholder snippet
 local M = { log_placeholders = {}, seen_buffers = {}, attached_buffers = {}, pending_log_entries = {} }
 
 ---@param line string
@@ -45,28 +47,59 @@ local function process_line(content, bufnr, line)
   end
 end
 
----@param log_placeholder LogPlaceholder
-local function render_placeholder_content(log_placeholder)
-  local content = log_placeholder.contents[1]
-  if not content then
-    return error("Log placeholder content is nil")
+---@param timestamp integer
+local function relative_time(timestamp)
+  local current_time = os.time()
+  local elapsed = current_time - timestamp
+
+  local breakpoints = {
+    { elapsed = 30, text = "Just now" },
+    { elapsed = 300, text = ">30 seconds ago" },
+    { elapsed = 900, text = ">5 minutes ago" },
+  }
+
+  for _, breakpoint in ipairs(breakpoints) do
+    if elapsed < breakpoint.elapsed then
+      return breakpoint.text
+    end
   end
 
-  local snippet = string.sub(content.body, 1, 16)
-  if #content.body > 16 then
-    snippet = snippet .. "..."
+  return ">15 minutes ago"
+end
+
+---@param log_placeholder LogPlaceholder
+local function render_placeholder_content(log_placeholder)
+  -- TODO: Support multiple log entries. Right now, let's render only the latest one
+  local content = log_placeholder.contents[1]
+  if not content then
+    return
+  end
+
+  local is_loaded = vim.api.nvim_buf_is_loaded(log_placeholder.bufnr)
+  if not is_loaded then
+    return
+  end
+
+  local preview_snippet_length = require("neolog.config").config.log_watcher.preview_snippet_length
+  local snippet = content.body
+
+  if #snippet > preview_snippet_length then
+    snippet = string.sub(content.body, 1, preview_snippet_length) .. "..."
   end
 
   local mark =
-    vim.api.nvim_buf_get_extmark_by_id(log_placeholder.bufnr, M.hl_log_placeholder, log_placeholder.extmark_id, {})
+    vim.api.nvim_buf_get_extmark_by_id(log_placeholder.bufnr, M.log_placeholder_ns, log_placeholder.extmark_id, {})
 
   if mark and #mark > 0 then
     ---@type integer, integer
     local row, col = unpack(mark, 1, 2)
 
-    vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.hl_log_placeholder, row, col, {
+    vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.log_placeholder_ns, row, col, {
       id = log_placeholder.extmark_id,
-      virt_text = { { "■ " .. snippet, "NeologLogPlaceholder" } },
+      virt_text = {
+        { "■ " .. snippet, "Neolog.LogPlaceholderSnippet" },
+        { " " .. relative_time(content.timestamp), "Neolog.LogPlaceholderTime" },
+      },
       virt_text_pos = "eol",
     })
   end
@@ -118,7 +151,7 @@ local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
     local line_placeholder = line_content and parse_log_placeholder(line_content)
     local marks = vim.api.nvim_buf_get_extmarks(
       bufnr,
-      M.hl_log_placeholder,
+      M.log_placeholder_ns,
       { new_last_line, 0 },
       { new_last_line, -1 },
       {}
@@ -136,7 +169,7 @@ local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
       local mark_id = mark[1]
 
       vim.schedule(function()
-        vim.api.nvim_buf_del_extmark(bufnr, M.hl_log_placeholder, mark_id)
+        vim.api.nvim_buf_del_extmark(bufnr, M.log_placeholder_ns, mark_id)
         delete_placeholder_by_extmark_id(mark_id, bufnr)
       end)
     end
@@ -149,7 +182,11 @@ function M.on_log_entry_received(entry)
   local log_placeholder = M.log_placeholders[entry.log_placeholder_id]
 
   if log_placeholder then
-    table.insert(log_placeholder.contents, { body = entry.payload, source_name = entry.source_name })
+    table.insert(
+      log_placeholder.contents,
+      1,
+      { body = entry.payload, source_name = entry.source_name, timestamp = entry.timestamp }
+    )
 
     vim.schedule(function()
       render_placeholder_content(log_placeholder)
@@ -182,7 +219,7 @@ function M.new_log_placeholder(log_placeholder)
   end
 
   local extmark_id =
-    vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.hl_log_placeholder, log_placeholder.line, 0, {})
+    vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.log_placeholder_ns, log_placeholder.line, 0, {})
 
   log_placeholder.extmark_id = extmark_id
   M.log_placeholders[log_placeholder.id] = log_placeholder
@@ -202,10 +239,16 @@ end
 
 ---Render a floating window showing placeholder content
 ---@param placeholder LogPlaceholder
-local function show_placeholder_full_content(placeholder)
+---@param opts? { silent?: boolean }
+local function show_placeholder_full_content(placeholder, opts)
+  opts = vim.tbl_extend("force", { silent = false }, opts or {})
+
   local content = placeholder.contents and placeholder.contents[1]
   if not content then
-    utils.notify("Log placeholder has no content", "warn")
+    if not opts.silent then
+      utils.notify("Log placeholder has no content", "warn")
+    end
+
     return
   end
 
@@ -239,27 +282,40 @@ local function show_placeholder_full_content(placeholder)
   vim.lsp.util.open_floating_preview(lines, "plaintext", window_config)
 end
 
-function M.open_float()
+---@param opts? { silent?: boolean }
+function M.open_float(opts)
+  opts = vim.tbl_extend("force", { silent = false }, opts or {})
+
   local current_line = vim.fn.getline(".")
   local placeholder_id = parse_log_placeholder(current_line)
 
   if not placeholder_id then
-    utils.notify("No log placeholder found", "warn")
+    if not opts.silent then
+      utils.notify("No log placeholder found", "warn")
+    end
+
     return
   end
 
   local placeholder = M.log_placeholders[placeholder_id]
   if placeholder then
-    show_placeholder_full_content(placeholder)
+    show_placeholder_full_content(placeholder, { silent = opts.silent })
   else
     error(string.format("Log placeholder %s does not exist", placeholder_id))
   end
 end
 
-function M.setup()
-  vim.api.nvim_set_hl(0, "NeologLogPlaceholder", { link = "DiagnosticVirtualTextInfo", default = true })
+local function update_placeholders_snippet()
+  for _, log_placeholder in pairs(M.log_placeholders) do
+    render_placeholder_content(log_placeholder)
+  end
+end
 
-  M.hl_log_placeholder = vim.api.nvim_create_namespace("neolog.log_placeholder")
+function M.setup()
+  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderSnippet", { link = "DiagnosticVirtualTextInfo", default = true })
+  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderTime", { italic = true })
+
+  M.log_placeholder_ns = vim.api.nvim_create_namespace("neolog.log_placeholder")
 
   vim.api.nvim_create_autocmd("BufRead", {
     callback = function(args)
@@ -277,6 +333,10 @@ function M.setup()
       table.insert(M.seen_buffers, bufnr)
     end,
   })
+
+  -- Timer loop to keep updating the placeholder snippets
+  M.placeholder_render_timer = vim.uv.new_timer()
+  M.placeholder_render_timer:start(0, 10000, vim.schedule_wrap(update_placeholders_snippet))
 end
 
 return M
