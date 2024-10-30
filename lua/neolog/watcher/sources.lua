@@ -22,6 +22,10 @@ function M.setup(opts)
     source_instance:start()
     table.insert(M.sources, source_instance)
   end
+
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    callback = M.stop,
+  })
 end
 
 function M.stop()
