@@ -31,6 +31,10 @@ end
 
 describe("neolog.watcher.sources.setup", function()
   describe("supports filesystem source", function()
+    after_each(function()
+      require("neolog.watcher.sources").stop()
+    end)
+
     it("supports single line log", function()
       local file_path = create_temp_file()
       local specs = {
