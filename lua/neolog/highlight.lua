@@ -16,7 +16,7 @@ function M.highlight_add_to_batch(log_target)
   vim.highlight.range(
     0,
     M.hl_add_to_batch,
-    "NeologAddToBatch",
+    "Neolog.AddToBatch",
     { srow, scol },
     { erow, ecol },
     { regtype = "v", inclusive = false }
@@ -41,7 +41,7 @@ function M.highlight_insert(start_line_number, end_line_number)
   vim.highlight.range(
     0,
     M.hl_insert,
-    "NeologInsert",
+    "Neolog.Insert",
     { start_line_number, 0 },
     { end_line_number or start_line_number, 0 },
     { regtype = "V", inclusive = false }
@@ -65,8 +65,8 @@ function M.setup()
   M.insert_hl_timer = vim.uv.new_timer()
   M.add_to_batch_hl_timer = vim.uv.new_timer()
 
-  vim.api.nvim_set_hl(0, "NeologInsert", { link = "Search", default = true })
-  vim.api.nvim_set_hl(0, "NeologAddToBatch", { link = "Search", default = true })
+  vim.api.nvim_set_hl(0, "Neolog.Insert", { link = "Search", default = true })
+  vim.api.nvim_set_hl(0, "Neolog.AddToBatch", { link = "Search", default = true })
 end
 
 return M

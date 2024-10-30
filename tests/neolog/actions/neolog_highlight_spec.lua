@@ -47,7 +47,7 @@ describe("neolog.highlight.highlight_add_to_batch", function()
           assert.equals(1, start_row)
           assert.equals(6, start_col)
           assert.equals(9, details.end_col)
-          assert.equals("NeologAddToBatch", details.hl_group)
+          assert.equals("Neolog.AddToBatch", details.hl_group)
         end,
       })
     end)
@@ -164,7 +164,7 @@ describe("neolog.highlight.highlight_insert", function()
           assert.equals(0, start_col)
           -- Because we are using V mode
           assert.equals(3, details.end_row)
-          assert.equals("NeologInsert", details.hl_group)
+          assert.equals("Neolog.Insert", details.hl_group)
         end,
       })
     end)
