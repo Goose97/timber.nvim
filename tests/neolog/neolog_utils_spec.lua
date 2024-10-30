@@ -1,5 +1,5 @@
-local utils = require("neolog.utils")
 local assert = require("luassert")
+local utils = require("neolog.utils")
 local helper = require("tests.neolog.helper")
 
 describe("neolog.utils", function()

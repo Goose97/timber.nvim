@@ -22,18 +22,18 @@ describe("neolog.actions.insert_log", function()
 
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = "bar"
-        ]],
+        // Comment
+        const fo|o = "bar"
+      ]],
       filetype = "javascript",
       action = function()
         actions.insert_log({ template = "testing", position = "below" })
       end,
       expected = [[
-          // Comment
-          const foo = "bar"
-          console.log("foo", foo)
-        ]],
+        // Comment
+        const foo = "bar"
+        console.log("foo", foo)
+      ]],
     })
   end)
 
@@ -48,18 +48,18 @@ describe("neolog.actions.insert_log", function()
 
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = "bar"
-        ]],
+        // Comment
+        const fo|o = "bar"
+      ]],
       filetype = "javascript",
       action = function()
         actions.insert_log({ template = "testing", position = "below" })
       end,
       expected = [[
-          // Comment
-          const foo = "bar"
-          console.log("2", foo)
-        ]],
+        // Comment
+        const foo = "bar"
+        console.log("2", foo)
+      ]],
     })
   end)
 
@@ -76,9 +76,9 @@ describe("neolog.actions.insert_log", function()
 
         helper.assert_scenario({
           input = [[
-          const fo|o = "bar"
-          const bar = "foo"
-        ]],
+            const fo|o = "bar"
+            const bar = "foo"
+          ]],
           filetype = "javascript",
           action = function()
             actions.insert_log({
@@ -326,9 +326,9 @@ describe("neolog.actions.insert_log", function()
 
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = "foo"
-        ]],
+        // Comment
+        const fo|o = "foo"
+      ]],
       filetype = "javascript",
       action = function()
         actions.insert_log({ position = "below" })
@@ -343,9 +343,9 @@ describe("neolog.actions.insert_log", function()
 
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = bar + baz
-        ]],
+        // Comment
+        const fo|o = bar + baz
+      ]],
       filetype = "javascript",
       action = function()
         vim.cmd("normal! V")
@@ -1111,10 +1111,10 @@ describe("neolog.actions.add_log_targets_to_batch", function()
 
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = "foo"
-          const bar = "bar"
-        ]],
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
       filetype = "javascript",
       action = function()
         vim.cmd("normal! Vj")
@@ -1131,10 +1131,10 @@ describe("neolog.actions.add_log_targets_to_batch", function()
   it("preserves the cursor position after adding in visual mode", function()
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = "foo"
-          const bar = "bar"
-        ]],
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
       filetype = "javascript",
       action = function()
         vim.cmd("normal! Vj")
@@ -1152,10 +1152,10 @@ describe("neolog.actions.add_log_targets_to_batch", function()
   it("supports dot repeat", function()
     helper.assert_scenario({
       input = [[
-          // Comment
-          const fo|o = "foo"
-          const bar = "bar"
-        ]],
+        // Comment
+        const fo|o = "foo"
+        const bar = "bar"
+      ]],
       filetype = "javascript",
       action = function()
         actions.add_log_targets_to_batch()

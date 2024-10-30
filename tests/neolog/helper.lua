@@ -1,18 +1,23 @@
-local M = {}
 local assert = require("luassert")
+
+local M = {}
 
 ---Setup a buffer with the given input and filetype.
 ---@param lines string[]
----@param cursor {[1]: number, [2]: number}
+---@param cursor {[1]: number, [2]: number}?
 ---@param filetype string
 local function setup_buffer(lines, cursor, filetype)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_set_option_value("filetype", filetype, { buf = buf })
   vim.api.nvim_set_option_value("shiftwidth", 2, { buf = buf })
 
-  vim.api.nvim_command("buffer " .. buf)
-  vim.api.nvim_buf_set_lines(0, 0, -1, true, lines)
-  vim.api.nvim_win_set_cursor(0, cursor)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+  -- vim.api.nvim_command("buffer " .. buf)
+  vim.api.nvim_set_current_buf(buf)
+  vim.api.nvim_exec_autocmds("BufRead", { buffer = buf })
+  if cursor then
+    vim.api.nvim_win_set_cursor(0, cursor)
+  end
 end
 
 ---Assert the output of the current buffer.
@@ -24,8 +29,9 @@ end
 
 ---Trim the redundant whitespaces from the input lines.
 ---@param input string
----@return string[], {[1]: number, [2]: number}
-local function parse_input(input)
+---@param parse_cursor? boolean
+---@return string[], {[1]: number, [2]: number}?
+local function parse_input(input, parse_cursor)
   -- Remove trailing whitespaces
   input = input:gsub("%s+$", "")
   local lines = vim.split(input, "\n", { trimempty = true })
@@ -45,10 +51,12 @@ local function parse_input(input)
   for i, line in ipairs(lines) do
     line = line:sub(smallest_indent + 1)
 
-    local start_index = line:find("|")
-    if start_index then
-      cursor = { i, start_index - 2 }
-      line = line:sub(1, cursor[2] + 1) .. line:sub(cursor[2] + 3)
+    if parse_cursor then
+      local start_index = line:find("|")
+      if start_index then
+        cursor = { i, start_index - 2 }
+        line = line:sub(1, cursor[2] + 1) .. line:sub(cursor[2] + 3)
+      end
     end
 
     lines[i] = line
@@ -59,6 +67,7 @@ end
 
 ---@class Scenario
 ---@field input string
+---@field input_cursor? boolean
 ---@field filetype string
 ---@field action function?
 ---@field expected string | function
@@ -71,7 +80,10 @@ end
 ---  const bar = "baz"
 ---@param scenario Scenario
 function M.assert_scenario(scenario)
-  local input_lines, cursor = parse_input(scenario.input)
+  scenario = vim.tbl_extend("force", { input_cursor = true }, scenario)
+
+  local input_lines, cursor = parse_input(scenario.input, scenario.input_cursor)
+  local utils = require("neolog.utils")
   setup_buffer(input_lines, cursor, scenario.filetype)
 
   if scenario.action then
@@ -82,7 +94,7 @@ function M.assert_scenario(scenario)
   if type(expected) == "function" then
     expected()
   else
-    local expected_lines, cursor1 = parse_input(expected)
+    local expected_lines, cursor1 = parse_input(expected, scenario.input_cursor)
 
     if cursor1 then
       error("Unexpected cursor position in scenario.expected")

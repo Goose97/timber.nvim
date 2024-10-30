@@ -8,6 +8,10 @@ local utils = require("neolog.utils")
 ---@field on_add_to_batch? boolean Whether to highlight the log target when adding to the batch. Defaults to `true`
 ---@field duration number The timeout in ms for highlighting
 
+---@class NeologWatcherConfig
+---@field enabled? boolean Whether to enable log watcher. Defaults to `false`
+---@field sources SourceSpecs The sources to watch
+
 ---@alias NeologAction 'insert_log_below' | 'insert_log_above' | 'insert_batch_log' | 'add_log_targets_to_batch'
 ---@alias NeologOperator 'insert_log_below_operator' | 'insert_log_above_operator' | 'insert_batch_log_operator' | 'add_log_targets_to_batch_operator'
 
@@ -17,6 +21,7 @@ local utils = require("neolog.utils")
 ---@field highlight NeologHighlightConfig
 ---@field keymaps { [NeologAction | NeologOperator]: string }
 ---@field default_keymaps_enabled boolean Whether to enable default keymaps. Defaults to `true`
+---@field log_watcher NeologWatcherConfig
 
 ---@type NeologConfig
 local default_config = {
@@ -56,6 +61,7 @@ local default_config = {
   default_keymaps_enabled = true,
   log_watcher = {
     enabled = false,
+    sources = {},
   },
 }
 

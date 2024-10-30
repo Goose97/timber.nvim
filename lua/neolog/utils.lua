@@ -126,6 +126,14 @@ function M.log(message)
   io.close(log_file)
 end
 
+function M.log_test(message)
+  local log_file_path = "/tmp/neolog_debug.log"
+  local log_file = io.open(log_file_path, "a")
+  io.output(log_file)
+  io.write(M.dump(message) .. "\n")
+  io.close(log_file)
+end
+
 local function range_start_before(range1, range2)
   if range1[1] == range2[1] then
     return range1[2] < range2[2]
