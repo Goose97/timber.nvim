@@ -1189,6 +1189,38 @@ local run = function(language)
         ]],
       })
     end)
+
+    it("DOES NOT support function call as member access object", function()
+      helper.assert_scenario({
+        input = [[
+          const foo = bar.ba|r().baf
+        ]],
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+          vim.cmd("normal! $")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = bar.bar().baf
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          const foo = bar["ba|r"]().baf
+        ]],
+        filetype = language,
+        action = function()
+          actions.insert_log({ position = "below" })
+          vim.cmd("normal! $")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          const foo = bar["bar"]().baf
+        ]],
+      })
+    end)
   end)
 
   describe("supports visual selection log", function()

@@ -19,9 +19,6 @@ function M.sort_ts_nodes_preorder(nodes)
   end)
 end
 
----Query all target containers in the current buffer that intersect with the given range
----It's possible to have containers which contain one another. They form a subtree.
----In this case, we pick the deepest child in the subtree.
 ---@alias logable_range {[1]: number, [2]: number}
 ---@param lang string
 ---@param range {[1]: number, [2]: number, [3]: number, [4]: number}
