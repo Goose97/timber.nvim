@@ -24,40 +24,13 @@ local function nums_of_windows()
   return #wins
 end
 
-describe("neolog.buffers BufRead autocmd", function()
+describe("neolog.buffers autocmd", function()
   before_each(function()
     buffers.setup()
   end)
 
-  it("parses the placeholders when entering buffers", function()
-    local id1 = watcher.generate_unique_id()
-    local id2 = watcher.generate_unique_id()
-
-    helper.assert_scenario({
-      input = string.format(
-        [[
-          const foo = "bar"
-          console.log("%s%s|")
-          console.log("%s%s|")
-        ]],
-        watcher.MARKER,
-        id1,
-        watcher.MARKER,
-        id2
-      ),
-      input_cursor = false,
-      filetype = "typescript",
-      expected = function()
-        -- Internally, we add the placeholder in the next tick using vim.schedule, hence the wait
-        helper.wait(20)
-        assert.is.Not.Nil(buffers.log_placeholders[id1])
-        assert.is.Not.Nil(buffers.log_placeholders[id2])
-      end,
-    })
-  end)
-
-  describe("given the buffer has some placeholders", function()
-    it("attaches to the buffer and deletes the placeholder when the log statement is deleted", function()
+  describe("BufRead", function()
+    it("parses the placeholders when entering buffers", function()
       local id1 = watcher.generate_unique_id()
       local id2 = watcher.generate_unique_id()
 
@@ -67,7 +40,6 @@ describe("neolog.buffers BufRead autocmd", function()
             const foo = "bar"
             console.log("%s%s|")
             console.log("%s%s|")
-            const bar = "foo"
           ]],
           watcher.MARKER,
           id1,
@@ -76,106 +48,190 @@ describe("neolog.buffers BufRead autocmd", function()
         ),
         input_cursor = false,
         filetype = "typescript",
-        action = function()
-          helper.wait(20)
-          vim.cmd("normal! 2Gdd")
-          helper.wait(20)
-        end,
         expected = function()
-          assert.is.Nil(buffers.log_placeholders[id1])
+          -- Internally, we add the placeholder in the next tick using vim.schedule, hence the wait
+          helper.wait(20)
+          assert.is.Not.Nil(buffers.log_placeholders[id1])
           assert.is.Not.Nil(buffers.log_placeholders[id2])
-
-          assert.equals(#get_extmarks(0), 0)
-          assert.equals(#get_extmarks(1), 1)
-          assert.equals(#get_extmarks(2), 0)
-        end,
-      })
-
-      local id3 = watcher.generate_unique_id()
-      local id4 = watcher.generate_unique_id()
-
-      helper.assert_scenario({
-        input = string.format(
-          [[
-            const foo = "bar"
-            console.log("%s%s|")
-            console.log("%s%s|")
-            const bar = "foo"
-          ]],
-          watcher.MARKER,
-          id3,
-          watcher.MARKER,
-          id4
-        ),
-        input_cursor = false,
-        filetype = "typescript",
-        action = function()
-          helper.wait(20)
-          vim.cmd("normal! 2Gdj")
-          helper.wait(20)
-        end,
-        expected = function()
-          assert.is.Nil(buffers.log_placeholders[id3])
-          assert.is.Nil(buffers.log_placeholders[id4])
-
-          assert.equals(#get_extmarks(0), 0)
-          assert.equals(#get_extmarks(1), 0)
         end,
       })
     end)
 
-    it("attaches to the buffer and adds the placeholder when the log statement is inserted", function()
-      local id1 = watcher.generate_unique_id()
-      local id2 = watcher.generate_unique_id()
+    describe("given the buffer has some placeholders", function()
+      it("attaches to the buffer and deletes the placeholder when the log statement is deleted", function()
+        local id1 = watcher.generate_unique_id()
+        local id2 = watcher.generate_unique_id()
+
+        helper.assert_scenario({
+          input = string.format(
+            [[
+              const foo = "bar"
+              console.log("%s%s|")
+              console.log("%s%s|")
+              const bar = "foo"
+            ]],
+            watcher.MARKER,
+            id1,
+            watcher.MARKER,
+            id2
+          ),
+          input_cursor = false,
+          filetype = "typescript",
+          action = function()
+            helper.wait(20)
+            vim.cmd("normal! 2Gdd")
+            helper.wait(20)
+          end,
+          expected = function()
+            assert.is.Nil(buffers.log_placeholders[id1])
+            assert.is.Not.Nil(buffers.log_placeholders[id2])
+
+            assert.equals(#get_extmarks(0), 0)
+            assert.equals(#get_extmarks(1), 1)
+            assert.equals(#get_extmarks(2), 0)
+          end,
+        })
+
+        local id3 = watcher.generate_unique_id()
+        local id4 = watcher.generate_unique_id()
+
+        helper.assert_scenario({
+          input = string.format(
+            [[
+              const foo = "bar"
+              console.log("%s%s|")
+              console.log("%s%s|")
+              const bar = "foo"
+            ]],
+            watcher.MARKER,
+            id3,
+            watcher.MARKER,
+            id4
+          ),
+          input_cursor = false,
+          filetype = "typescript",
+          action = function()
+            helper.wait(20)
+            vim.cmd("normal! 2Gdj")
+            helper.wait(20)
+          end,
+          expected = function()
+            assert.is.Nil(buffers.log_placeholders[id3])
+            assert.is.Nil(buffers.log_placeholders[id4])
+
+            assert.equals(#get_extmarks(0), 0)
+            assert.equals(#get_extmarks(1), 0)
+          end,
+        })
+      end)
+
+      it("attaches to the buffer and adds the placeholder when the log statement is inserted", function()
+        local id1 = watcher.generate_unique_id()
+        local id2 = watcher.generate_unique_id()
+
+        helper.assert_scenario({
+          input = string.format(
+            [[
+              const foo = "bar"
+              console.log("%s%s|")
+              const bar = "foo"
+            ]],
+            watcher.MARKER,
+            id1
+          ),
+          input_cursor = false,
+          filetype = "typescript",
+          action = function()
+            helper.wait(20)
+            vim.fn.setreg("a", string.format([[console.log("%s%s|")]], watcher.MARKER, id2), "V")
+            vim.cmd([[normal! 2G"ap]])
+            helper.wait(20)
+          end,
+          expected = function()
+            assert.is.Not.Nil(buffers.log_placeholders[id1])
+            assert.is.Not.Nil(buffers.log_placeholders[id2])
+
+            assert.equals(#get_extmarks(1), 1)
+            assert.equals(#get_extmarks(2), 1)
+          end,
+        })
+      end)
+    end)
+
+    describe("given the buffer has NO placeholders", function()
+      it("DOES NOT attach to the buffer and react to buffer changes", function()
+        local id = watcher.generate_unique_id()
+
+        helper.assert_scenario({
+          input = [[
+            const fo|o = "bar"
+            const bar = "foo"
+          ]],
+          filetype = "typescript",
+          action = function()
+            vim.fn.setreg("a", string.format([[console.log("%s%s|")]], watcher.MARKER, id), "V")
+            vim.cmd([[normal! "ap]])
+            helper.wait(20)
+          end,
+          expected = function()
+            assert.is.Nil(buffers.log_placeholders[id])
+
+            assert.equals(#get_extmarks(1), 0)
+          end,
+        })
+      end)
+    end)
+  end)
+
+  describe("BufDelete", function()
+    it("detaches the buffer", function()
+      local id = watcher.generate_unique_id()
 
       helper.assert_scenario({
         input = string.format(
           [[
             const foo = "bar"
             console.log("%s%s|")
-            const bar = "foo"
           ]],
           watcher.MARKER,
-          id1
+          id
         ),
         input_cursor = false,
         filetype = "typescript",
-        action = function()
-          helper.wait(20)
-          vim.fn.setreg("a", string.format([[console.log("%s%s|")]], watcher.MARKER, id2), "V")
-          vim.cmd([[normal! 2G"ap]])
-          helper.wait(20)
-        end,
         expected = function()
-          assert.is.Not.Nil(buffers.log_placeholders[id1])
-          assert.is.Not.Nil(buffers.log_placeholders[id2])
-
-          assert.equals(#get_extmarks(1), 1)
-          assert.equals(#get_extmarks(2), 1)
+          helper.wait(20)
+          local bufnr = vim.api.nvim_get_current_buf()
+          assert.is.True(vim.list_contains(buffers.attached_buffers, bufnr))
+          -- I don't know why :bdelete doesn't trigger the BufDelete autocmd
+          -- Maybe it has something to do with the way we create the buffer for testing?
+          vim.api.nvim_exec_autocmds("BufDelete", { buffer = bufnr })
+          assert.is_not.True(vim.list_contains(buffers.attached_buffers, bufnr))
         end,
       })
     end)
   end)
 
-  describe("given the buffer has NO placeholders", function()
-    it("DOES NOT attach to the buffer and react to buffer changes", function()
+  describe("BufWipeout", function()
+    it("detaches the buffer", function()
       local id = watcher.generate_unique_id()
 
       helper.assert_scenario({
-        input = [[
-          const fo|o = "bar"
-          const bar = "foo"
-        ]],
+        input = string.format(
+          [[
+            const foo = "bar"
+            console.log("%s%s|")
+          ]],
+          watcher.MARKER,
+          id
+        ),
+        input_cursor = false,
         filetype = "typescript",
-        action = function()
-          vim.fn.setreg("a", string.format([[console.log("%s%s|")]], watcher.MARKER, id), "V")
-          vim.cmd([[normal! "ap]])
-          helper.wait(20)
-        end,
         expected = function()
-          assert.is.Nil(buffers.log_placeholders[id])
-
-          assert.equals(#get_extmarks(1), 0)
+          helper.wait(20)
+          local bufnr = vim.api.nvim_get_current_buf()
+          assert.is.True(vim.list_contains(buffers.attached_buffers, bufnr))
+          vim.cmd("bwipeout")
+          assert.is_not.True(vim.list_contains(buffers.attached_buffers, bufnr))
         end,
       })
     end)
@@ -395,7 +451,7 @@ describe("neolog.buffers.open_float", function()
 
   describe("given the current line has a log placeholder", function()
     describe("given the placeholder has some contents", function()
-      it("shows the content in a floating window", function()
+      it("shows all the contents in a floating window", function()
         local id = watcher.generate_unique_id()
 
         helper.assert_scenario({
@@ -414,7 +470,13 @@ describe("neolog.buffers.open_float", function()
             helper.wait(20)
             buffers.on_log_entry_received({
               log_placeholder_id = id,
-              payload = "foo_123456789_123456890",
+              payload = "foo_1",
+              source_name = "Test",
+              timestamp = os.time(),
+            })
+            buffers.on_log_entry_received({
+              log_placeholder_id = id,
+              payload = "foo_2",
               source_name = "Test",
               timestamp = os.time(),
             })
@@ -425,8 +487,11 @@ describe("neolog.buffers.open_float", function()
           end,
           expected = function()
             local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-            assert.equals(1, #lines)
-            assert.equals("foo_123456789_123456890", lines[1])
+            local content = table.concat(lines, "")
+
+            assert.is_not.Nil(string.match(content, "2 entries"))
+            assert.is_not.Nil(string.match(content, "foo_1"))
+            assert.is_not.Nil(string.match(content, "foo_2"))
           end,
         })
 

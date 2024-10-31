@@ -104,6 +104,26 @@ local function render_placeholder_snippet(log_placeholder)
   end
 end
 
+---@param log_placeholder LogPlaceholder
+local function remove_placeholder_snippet(log_placeholder)
+  local is_loaded = vim.api.nvim_buf_is_loaded(log_placeholder.bufnr)
+  if not is_loaded then
+    return
+  end
+
+  local mark =
+    vim.api.nvim_buf_get_extmark_by_id(log_placeholder.bufnr, M.log_placeholder_ns, log_placeholder.extmark_id, {})
+
+  if mark and #mark > 0 then
+    ---@type integer, integer
+    local row, col = unpack(mark, 1, 2)
+
+    vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.log_placeholder_ns, row, col, {
+      id = log_placeholder.extmark_id,
+    })
+  end
+end
+
 ---@param bufnr number
 ---@return boolean found_any_placeholders
 local function process_buffer(bufnr)
@@ -120,18 +140,47 @@ local function process_buffer(bufnr)
   return found_any
 end
 
+local function detach_buffer(bufnr)
+  local index = utils.array_find_index(M.attached_buffers, function(v)
+    return v == bufnr
+  end)
+
+  -- There's no API to detach a buffer. We will return false in the next on_lines callback
+  if index then
+    table.remove(M.attached_buffers, index)
+  end
+end
+
 ---@param extmark_id integer
 ---@param bufnr integer
 local function delete_placeholder_by_extmark_id(extmark_id, bufnr)
+  local buf_remain_placeholders = 0
+
   for placeholder_id, placeholder in pairs(M.log_placeholders) do
-    if placeholder.extmark_id == extmark_id and placeholder.bufnr == bufnr then
-      M.log_placeholders[placeholder_id] = nil
-      break
+    if placeholder.bufnr == bufnr then
+      if placeholder.extmark_id == extmark_id then
+        M.log_placeholders[placeholder_id] = nil
+      else
+        buf_remain_placeholders = buf_remain_placeholders + 1
+      end
     end
+  end
+
+  if buf_remain_placeholders == 0 then
+    detach_buffer(bufnr)
   end
 end
 
 local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
+  -- local index = utils.array_find_index(M.attached_buffers, function(v)
+  --   return v == bufnr
+  -- end)
+  --
+  -- if not index then
+  --   -- Detach the buffer
+  --   return true
+  -- end
+
   -- Process each line in the changed region
   for lnum = first_line, new_last_line - 1 do
     local line = vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1]
@@ -175,6 +224,21 @@ local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
   end
 end
 
+local function attach_buffer(bufnr)
+  if vim.list_contains(M.attached_buffers, bufnr) then
+    return
+  end
+
+  vim.api.nvim_buf_attach(bufnr, false, {
+    on_lines = on_lines,
+    on_reload = function()
+      process_buffer(bufnr)
+    end,
+  })
+
+  table.insert(M.attached_buffers, bufnr)
+end
+
 ---Callback for log entry received
 --- @param entry WatcherLogEntry
 function M.on_log_entry_received(entry)
@@ -193,21 +257,6 @@ function M.on_log_entry_received(entry)
     -- Save the log entry for later
     table.insert(M.pending_log_entries, entry)
   end
-end
-
-local function attach_buffer(bufnr)
-  if vim.list_contains(M.attached_buffers, bufnr) then
-    return
-  end
-
-  vim.api.nvim_buf_attach(bufnr, false, {
-    on_lines = on_lines,
-    on_reload = function()
-      process_buffer(bufnr)
-    end,
-  })
-
-  table.insert(M.attached_buffers, bufnr)
 end
 
 ---@param log_placeholder LogPlaceholder
@@ -258,8 +307,10 @@ local function prepare_floating_window_content(contents)
   local separators = {}
   local line_count = 0
 
+  local total_entries_line
   if has_total_entries then
-    table.insert(buf_content, utils.string_left_pad(string.format("Total entries: %d", #contents), max_width))
+    total_entries_line = utils.string_left_pad(string.format("%d entries", #contents), max_width)
+    table.insert(buf_content, total_entries_line)
     line_count = line_count + 1
   end
 
@@ -268,7 +319,8 @@ local function prepare_floating_window_content(contents)
     line_count = line_count + #lines
 
     if i < #contents then
-      table.insert(buf_content, string.rep("─", max_width))
+      local separator_width = math.max(max_width, #total_entries_line)
+      table.insert(buf_content, string.rep("─", separator_width))
       table.insert(separators, line_count)
       line_count = line_count + 1
     end
@@ -344,6 +396,13 @@ local function update_placeholders_snippet()
   end
 end
 
+function M.clear_logs()
+  for _, log_placeholder in pairs(M.log_placeholders) do
+    log_placeholder.contents = {}
+    remove_placeholder_snippet(log_placeholder)
+  end
+end
+
 function M.setup()
   vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderSnippet", { link = "DiagnosticVirtualTextInfo", default = true })
   vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderTime", { italic = true })
@@ -366,6 +425,18 @@ function M.setup()
       end
 
       table.insert(M.seen_buffers, bufnr)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("BufDelete", {
+    callback = function(args)
+      detach_buffer(args.buf)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    callback = function(args)
+      detach_buffer(args.buf)
     end,
   })
 

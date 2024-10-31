@@ -12,7 +12,6 @@ local function setup_buffer(lines, cursor, filetype)
   vim.api.nvim_set_option_value("shiftwidth", 2, { buf = buf })
 
   vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
-  -- vim.api.nvim_command("buffer " .. buf)
   vim.api.nvim_set_current_buf(buf)
   vim.api.nvim_exec_autocmds("BufRead", { buffer = buf })
   if cursor then
