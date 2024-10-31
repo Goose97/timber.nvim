@@ -13,6 +13,16 @@ function M.array_find(array, predicate)
   return nil
 end
 
+function M.array_find_index(array, predicate)
+  for i, v in ipairs(array) do
+    if predicate(v, i) then
+      return i
+    end
+  end
+
+  return nil
+end
+
 function M.array_map(array, mapper)
   local result = {}
 
