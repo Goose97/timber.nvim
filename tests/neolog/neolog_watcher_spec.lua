@@ -19,7 +19,7 @@ local function create_temp_file()
 end
 
 local function write_to_file(filename, content)
-  local file = io.open(filename, "w")
+  local file = io.open(filename, "a")
   if file then
     file:write(content)
     file:close()
