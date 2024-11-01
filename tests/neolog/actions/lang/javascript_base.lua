@@ -900,72 +900,112 @@ local run = function(language)
     end)
   end)
 
-  it("supports arguments in call expression", function()
-    helper.assert_scenario({
-      input = [[
-        foo(ba|r, baz)
-      ]],
-      filetype = language,
-      action = function()
-        vim.cmd("normal! V")
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        foo(bar, baz)
-        console.log("bar", bar)
-        console.log("baz", baz)
-      ]],
-    })
+  describe("supports arguments in call expression", function()
+    it("supports plain arguments", function()
+      helper.assert_scenario({
+        input = [[
+          foo(ba|r, baz)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          foo(bar, baz)
+          console.log("bar", bar)
+          console.log("baz", baz)
+        ]],
+      })
 
-    helper.assert_scenario({
-      input = [[
-        foo.bar(ba|z)
-      ]],
-      filetype = language,
-      action = function()
-        vim.cmd("normal! V")
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        foo.bar(baz)
-        console.log("foo", foo)
-        console.log("baz", baz)
-      ]],
-    })
+      helper.assert_scenario({
+        input = [[
+          foo.bar(ba|z)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          foo.bar(baz)
+          console.log("foo", foo)
+          console.log("baz", baz)
+        ]],
+      })
 
-    helper.assert_scenario({
-      input = [[
-        foo.bar(ba|z).then(baf)
-      ]],
-      filetype = language,
-      action = function()
-        vim.cmd("normal! V")
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        foo.bar(baz).then(baf)
-        console.log("foo", foo)
-        console.log("baz", baz)
-        console.log("baf", baf)
-      ]],
-    })
+      helper.assert_scenario({
+        input = [[
+          foo.bar(ba|z).then(baf)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          foo.bar(baz).then(baf)
+          console.log("foo", foo)
+          console.log("baz", baz)
+          console.log("baf", baf)
+        ]],
+      })
+    end)
 
-    helper.assert_scenario({
-      input = [[
-        foo({ foo: foo, bar: bar.b|az }).then(baf)
-      ]],
-      filetype = language,
-      action = function()
-        vim.cmd("normal! V")
-        actions.insert_log({ position = "below" })
-      end,
-      expected = [[
-        foo({ foo: foo, bar: bar.baz }).then(baf)
-        console.log("foo", foo)
-        console.log("bar.baz", bar.baz)
-        console.log("baf", baf)
-      ]],
-    })
+    it("supports member access arguments", function()
+      helper.assert_scenario({
+        input = [[
+          foo({ foo: foo, bar: bar.b|az }).then(baf)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          foo({ foo: foo, bar: bar.baz }).then(baf)
+          console.log("foo", foo)
+          console.log("bar.baz", bar.baz)
+          console.log("baf", baf)
+        ]],
+      })
+
+      helper.assert_scenario({
+        input = [[
+          foo({ foo: foo, bar: bar["b|az"] }).then(baf)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          foo({ foo: foo, bar: bar["baz"] }).then(baf)
+          console.log("foo", foo)
+          console.log("bar["baz"]", bar["baz"])
+          console.log("baf", baf)
+        ]],
+      })
+    end)
+
+    it("supports object shorthand arguments", function()
+      helper.assert_scenario({
+        input = [[
+          foo({ foo, ba|r }).then(baf)
+        ]],
+        filetype = language,
+        action = function()
+          vim.cmd("normal! V")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          foo({ foo, bar }).then(baf)
+          console.log("foo", foo)
+          console.log("bar", bar)
+          console.log("baf", baf)
+        ]],
+      })
+    end)
   end)
 
   describe("supports for loop statement", function()

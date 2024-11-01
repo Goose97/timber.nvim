@@ -4,6 +4,7 @@
   ([
     (identifier)
     (shorthand_property_identifier_pattern)
+    (shorthand_property_identifier)
   ]) @log_target
   (#not-field-of-parent? @log_target call_expression function)
   (#not-has-ancestor? @log_target jsx_element)
@@ -15,6 +16,7 @@
   ([
     (identifier)
     (shorthand_property_identifier_pattern)
+    (shorthand_property_identifier)
   ]) @log_target
   (#has-ancestor? @log_target jsx_expression)
   (#not-has-parent? @log_target jsx_opening_element)

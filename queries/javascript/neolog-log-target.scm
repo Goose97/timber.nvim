@@ -1,4 +1,7 @@
-(shorthand_property_identifier_pattern) @log_target
+([
+  (shorthand_property_identifier_pattern)
+  (shorthand_property_identifier)
+]) @log_target
 
 ; Not function name in call expression foo(bar)
 (
