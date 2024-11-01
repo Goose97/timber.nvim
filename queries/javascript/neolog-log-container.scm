@@ -10,6 +10,16 @@
   body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
 )
 
+(function_expression
+  parameters: (formal_parameters) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
+
+(arrow_function
+  parameters: (formal_parameters) @log_container
+  body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
+)
+
 (try_statement
   handler: (catch_clause
     parameter: (_) @log_container

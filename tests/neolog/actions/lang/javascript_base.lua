@@ -100,98 +100,292 @@ local run = function(language)
   end)
 
   describe("supports function parameters", function()
-    it("supports plain parameters", function()
-      local input = [[
-        function foo(ba|r) {
-          return null
-        }
-      ]]
+    describe("supports function declaration", function()
+      it("supports plain parameters", function()
+        local input = [[
+          function foo(ba|r) {
+            return null
+          }
+        ]]
 
-      local expected = [[
-        function foo(bar) {
-          console.log("bar", bar)
-          return null
-        }
-      ]]
+        local expected = [[
+          function foo(bar) {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
 
-      helper.assert_scenario({
-        input = input,
-        filetype = language,
-        action = function()
-          actions.insert_log({ position = "below" })
-        end,
-        expected = expected,
-      })
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
 
-      input = [[
-        function foo(bar, ba|z) {
-          return null
-        }
-      ]]
+        input = [[
+          function foo(bar, ba|z) {
+            return null
+          }
+        ]]
 
-      expected = [[
-        console.log("baz", baz)
-        function foo(bar, baz) {
-          return null
-        }
-      ]]
+        expected = [[
+          console.log("baz", baz)
+          function foo(bar, baz) {
+            return null
+          }
+        ]]
 
-      helper.assert_scenario({
-        input = input,
-        filetype = language,
-        action = function()
-          actions.insert_log({ position = "above" })
-        end,
-        expected = expected,
-      })
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "above" })
+          end,
+          expected = expected,
+        })
+      end)
+
+      it("supports object destructuring parameters", function()
+        local input = [[
+          function foo({ bar: ba|r }) {
+            return null
+          }
+        ]]
+
+        local expected = [[
+          function foo({ bar: bar }) {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+      end)
+
+      it("supports object destructuring shorthand parameters", function()
+        local input = [[
+          function foo({ ba|r }) {
+            return null
+          }
+        ]]
+
+        local expected = [[
+          function foo({ bar }) {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+      end)
     end)
 
-    it("supports object destructuring parameters", function()
-      local input = [[
-        function foo({ bar: ba|r }) {
-          return null
-        }
-      ]]
+    describe("supports function expression", function()
+      it("supports plain parameters", function()
+        local input = [[
+          const foo = function (ba|r) {
+            return null
+          }
+        ]]
 
-      local expected = [[
-        function foo({ bar: bar }) {
-          console.log("bar", bar)
-          return null
-        }
-      ]]
+        local expected = [[
+          const foo = function (bar) {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
 
-      helper.assert_scenario({
-        input = input,
-        filetype = language,
-        action = function()
-          actions.insert_log({ position = "below" })
-        end,
-        expected = expected,
-      })
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+
+        input = [[
+          const foo = function (bar, ba|z) {
+            return null
+          }
+        ]]
+
+        expected = [[
+          console.log("baz", baz)
+          const foo = function (bar, baz) {
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "above" })
+          end,
+          expected = expected,
+        })
+      end)
+
+      it("supports object destructuring parameters", function()
+        local input = [[
+          const foo = function ({ bar: ba|r }) {
+            return null
+          }
+        ]]
+
+        local expected = [[
+          const foo = function ({ bar: bar }) {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+      end)
+
+      it("supports object destructuring shorthand parameters", function()
+        local input = [[
+          const foo = function ({ ba|r }) {
+            return null
+          }
+        ]]
+
+        local expected = [[
+          const foo = function ({ bar }) {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+      end)
     end)
 
-    it("supports object destructuring shorthand parameters", function()
-      local input = [[
-        function foo({ ba|r }) {
-          return null
-        }
-      ]]
+    describe("supports arrow function", function()
+      it("supports plain parameters", function()
+        local input = [[
+          const foo = (ba|r) => {
+            return null
+          }
+        ]]
 
-      local expected = [[
-        function foo({ bar }) {
-          console.log("bar", bar)
-          return null
-        }
-      ]]
+        local expected = [[
+          const foo = (bar) => {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
 
-      helper.assert_scenario({
-        input = input,
-        filetype = language,
-        action = function()
-          actions.insert_log({ position = "below" })
-        end,
-        expected = expected,
-      })
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+
+        input = [[
+          const foo = (bar, ba|z) => {
+            return null
+          }
+        ]]
+
+        expected = [[
+          console.log("baz", baz)
+          const foo = (bar, baz) => {
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "above" })
+          end,
+          expected = expected,
+        })
+      end)
+
+      it("supports object destructuring parameters", function()
+        local input = [[
+          const foo = ({ bar: ba|r }) => {
+            return null
+          }
+        ]]
+
+        local expected = [[
+          const foo = ({ bar: bar }) => {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+      end)
+
+      it("supports object destructuring shorthand parameters", function()
+        local input = [[
+          const foo = ({ ba|r }) => {
+            return null
+          }
+        ]]
+
+        local expected = [[
+          const foo = ({ bar }) => {
+            console.log("bar", bar)
+            return null
+          }
+        ]]
+
+        helper.assert_scenario({
+          input = input,
+          filetype = language,
+          action = function()
+            actions.insert_log({ position = "below" })
+          end,
+          expected = expected,
+        })
+      end)
     end)
   end)
 
