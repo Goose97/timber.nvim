@@ -46,28 +46,3 @@
   (#not-has-parent? @log_target jsx_closing_element)
   (#not-has-parent? @log_target jsx_self_closing_element)
 )
-
-; Simple member expression
-(
-  ([
-    (identifier)
-    (member_expression
-      object: [
-       (identifier)
-       (member_expression)
-       (subscript_expression)
-      ]
-      property: (property_identifier)
-    )
-    (subscript_expression
-      object: [
-       (identifier)
-       (member_expression)
-       (subscript_expression)
-      ]
-      index: (_)
-    )
-  ]) @log_target
-  (#has-ancestor? @log_target arguments)
-)
-

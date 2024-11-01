@@ -8,31 +8,8 @@
   (#not-field-of-ancestor? @log_target call_expression type_arguments)
 )
 
-; Simple member expression
-(
-  ([
-    (identifier)
-    (member_expression
-      object: [
-       (identifier)
-       (member_expression)
-       (subscript_expression)
-      ]
-      property: (property_identifier)
-    )
-    (subscript_expression
-      object: [
-       (identifier)
-       (member_expression)
-       (subscript_expression)
-      ]
-      index: (_)
-    )
-  ]) @log_target
-  (#has-ancestor? @log_target arguments)
-)
-
-; Simple member expression
+; Not function name in function call expression
+; For example: foo.bar(baf) won't log foo.bar
 (
   ([
     (member_expression

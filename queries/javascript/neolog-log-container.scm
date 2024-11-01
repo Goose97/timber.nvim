@@ -20,6 +20,11 @@
   body: (statement_block) @logable_range (#adjust-range! @logable_range 1 -1)
 )
 
+(call_expression
+  function: (identifier)
+  arguments: (arguments) @log_container
+)
+
 (try_statement
   handler: (catch_clause
     parameter: (_) @log_container
