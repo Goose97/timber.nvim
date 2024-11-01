@@ -463,6 +463,7 @@ describe("neolog.actions.insert_log", function()
         filetype = "javascript",
         action = function()
           actions.insert_log({ position = "below" })
+          helper.wait(20)
         end,
         expected = function()
           local cursor_position = vim.fn.getpos(".")
@@ -479,6 +480,7 @@ describe("neolog.actions.insert_log", function()
         filetype = "javascript",
         action = function()
           actions.insert_log({ position = "above" })
+          helper.wait(20)
         end,
         expected = function()
           local cursor_position = vim.fn.getpos(".")

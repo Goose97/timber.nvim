@@ -208,7 +208,7 @@ local function after_insert_log_statements(log_statements, insert_cursor_pos, or
     local original_row = original_cursor_position[2] - 1
     local inserted_lines = {}
     for _, statement in ipairs(log_statements) do
-      vim.fn.extend(inserted_lines, statement.inserted_rows)
+      vim.list_extend(inserted_lines, statement.inserted_rows)
     end
 
     table.sort(inserted_lines, function(a, b)
