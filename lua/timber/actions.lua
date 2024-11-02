@@ -289,7 +289,7 @@ end
 ---@param nodes TSNode[]
 ---@params selection_range {[1]: number, [2]: number, [3]: number, [4]: number}
 ---@return TSNode
-local function pick_best_node(nodes, selection_range)
+local function pick_biggest_node(nodes, selection_range)
   if #nodes == 0 then
     error("nodes can't be empty")
   end
@@ -308,13 +308,38 @@ local function pick_best_node(nodes, selection_range)
   return best_node or nodes[#nodes]
 end
 
+---@param log_targets {log_container: TSNode, logable_range: logable_range?, log_target: TSNode}[]
+---@param selection_range range
+---@return {log_container: TSNode, logable_range: logable_range?, log_target: TSNode}[]
+local function remove_overlapping_log_targets(log_targets, selection_range)
+  local lookup_table = {}
+
+  ---@type TSNode[]
+  local log_targets_only = {}
+
+  for _, i in ipairs(log_targets) do
+    lookup_table[i.log_target:id()] = i
+    table.insert(log_targets_only, i.log_target)
+  end
+
+  -- For each group, we pick the "biggest" node
+  -- A node is the biggest if it contains all other nodes in the group
+  local result = {}
+
+  for _, group in ipairs(group_overlapping_log_targets(log_targets_only)) do
+    local best = pick_biggest_node(group, selection_range)
+    local full_entry = lookup_table[best:id()]
+    table.insert(result, full_entry)
+  end
+
+  return result
+end
+
 ---@param lang string
----@param selection_range range?
----@return {log_container: TSNode, logable_range: logable_range?, log_targets: TSNode[]}[]
+---@param selection_range range
+---@return {log_container: TSNode, logable_range: logable_range?, log_target: TSNode}[]
 local function capture_log_targets(lang, selection_range)
   local log_containers = treesitter.query_log_target_container(lang, selection_range)
-
-  local result = {}
 
   local log_target_grouped_by_container = treesitter.find_log_targets(
     utils.array_map(log_containers, function(i)
@@ -323,17 +348,12 @@ local function capture_log_targets(lang, selection_range)
     lang
   )
 
+  local log_targets = {}
+
   for _, entry in ipairs(log_target_grouped_by_container) do
     -- Filter targets that intersect with the given range
-    local log_targets = utils.array_filter(entry.log_targets, function(node)
+    local _log_targets = utils.array_filter(entry.log_targets, function(node)
       return utils.ranges_intersect(selection_range, utils.get_ts_node_range(node))
-    end)
-
-    -- For each group, we pick the "biggest" node
-    -- A node is the biggest if it contains all other nodes in the group
-    local groups = group_overlapping_log_targets(log_targets)
-    log_targets = utils.array_map(groups, function(group)
-      return pick_best_node(group, selection_range)
     end)
 
     local log_container = utils.array_find(log_containers, function(i)
@@ -341,14 +361,19 @@ local function capture_log_targets(lang, selection_range)
     end)
     ---@cast log_container -nil
 
-    table.insert(result, {
-      log_container = log_container.container,
-      logable_range = log_container.logable_range,
-      log_targets = log_targets,
-    })
+    vim.list_extend(
+      log_targets,
+      utils.array_map(_log_targets, function(node)
+        return {
+          log_container = log_container.container,
+          logable_range = log_container.logable_range,
+          log_target = node,
+        }
+      end)
+    )
   end
 
-  return result
+  return remove_overlapping_log_targets(log_targets, selection_range)
 end
 
 ---@param log_target TSNode
@@ -379,31 +404,29 @@ local function build_capture_log_statements(log_template, lang, position, select
   local to_insert = {}
 
   for _, entry in ipairs(capture_log_targets(lang, selection_range)) do
-    local log_targets = entry.log_targets
+    local log_target = entry.log_target
     local log_container = entry.log_container
     local logable_range = entry.logable_range
 
-    for _, log_target in ipairs(log_targets) do
-      local content, placeholder_id = resolve_template_placeholders(log_template, {
-        identifier = function()
-          local bufnr = vim.api.nvim_get_current_buf()
-          return vim.treesitter.get_node_text(log_target, bufnr)
-        end,
-        line_number = function()
-          return tostring(log_target:start() + 1)
-        end,
-      })
+    local content, placeholder_id = resolve_template_placeholders(log_template, {
+      identifier = function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        return vim.treesitter.get_node_text(log_target, bufnr)
+      end,
+      line_number = function()
+        return tostring(log_target:start() + 1)
+      end,
+    })
 
-      local insert_row = get_insert_row(log_target, log_container, logable_range, position)
+    local insert_row = get_insert_row(log_target, log_container, logable_range, position)
 
-      table.insert(to_insert, {
-        content = content,
-        row = insert_row,
-        insert_cursor_offset = nil,
-        log_target = log_target,
-        placeholder_id = placeholder_id,
-      })
-    end
+    table.insert(to_insert, {
+      content = content,
+      row = insert_row,
+      insert_cursor_offset = nil,
+      log_target = log_target,
+      placeholder_id = placeholder_id,
+    })
   end
 
   return to_insert
@@ -644,9 +667,7 @@ function M.__add_log_targets_to_batch(motion_type)
   local to_add = {}
 
   for _, entry in ipairs(capture_log_targets(lang, selection_range)) do
-    for _, log_target in ipairs(entry.log_targets) do
-      table.insert(to_add, log_target)
-    end
+    table.insert(to_add, entry.log_target)
   end
 
   to_add = treesitter.sort_ts_nodes_preorder(to_add)

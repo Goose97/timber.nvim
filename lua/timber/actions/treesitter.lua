@@ -31,7 +31,7 @@ function M.query_log_target_container(lang, range)
 
   local query = vim.treesitter.query.get(lang, "timber-log-container")
   if not query then
-    vim.notify(string.format("timber doesn't support %s language", lang), vim.log.levels.ERROR)
+    utils.notify(string.format("timber doesn't support %s language", lang), "error")
     return {}
   end
 
@@ -47,6 +47,7 @@ function M.query_log_target_container(lang, range)
 
       local logable_range_col_range
 
+      -- adjusted_logable_range is set by the adjust-range! directive
       if metadata.adjusted_logable_range then
         logable_range_col_range = {
           metadata.adjusted_logable_range[1],
@@ -64,14 +65,14 @@ function M.query_log_target_container(lang, range)
 end
 
 ---Find all the log target nodes in the given containers
----A log target can belong to multiple containers. In this case, we pick the deepest container
+---A log target can belong to multiple containers. In this case, we pick the smallest container
 ---@param containers TSNode[]
 ---@param lang string
 ---@return {container: TSNode, log_targets: TSNode[]}[]
 function M.find_log_targets(containers, lang)
   local query = vim.treesitter.query.get(lang, "timber-log-target")
   if not query then
-    vim.notify(string.format("timber doesn't support %s language", lang), vim.log.levels.ERROR)
+    utils.notify(string.format("timber doesn't support %s language", lang), "error")
     return {}
   end
 
@@ -97,7 +98,7 @@ function M.find_log_targets(containers, lang)
 
   local grouped_log_containers = {}
 
-  -- If there's multiple containers for the same log target, pick the deepest container
+  -- If there's multiple containers for the same log target, pick the smallest container
   for log_target_id, log_containers in pairs(grouped_log_targets) do
     local sorted_group = M.sort_ts_nodes_preorder(log_containers)
     local deepest_container = sorted_group[#sorted_group]
