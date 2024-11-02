@@ -82,7 +82,7 @@ function M.assert_scenario(scenario)
   scenario = vim.tbl_extend("force", { input_cursor = true }, scenario)
 
   local input_lines, cursor = parse_input(scenario.input, scenario.input_cursor)
-  local utils = require("neolog.utils")
+  local utils = require("timber.utils")
   setup_buffer(input_lines, cursor, scenario.filetype)
 
   if scenario.action then

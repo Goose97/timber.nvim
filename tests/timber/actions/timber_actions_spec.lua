@@ -1,18 +1,18 @@
 local assert = require("luassert")
 local spy = require("luassert.spy")
-local neolog = require("neolog")
-local actions = require("neolog.actions")
-local utils = require("neolog.utils")
-local highlight = require("neolog.highlight")
-local helper = require("tests.neolog.helper")
+local timber = require("timber")
+local actions = require("timber.actions")
+local utils = require("timber.utils")
+local highlight = require("timber.highlight")
+local helper = require("tests.timber.helper")
 
-describe("neolog.actions.insert_log", function()
+describe("timber.actions.insert_log", function()
   before_each(function()
-    neolog.setup()
+    timber.setup()
   end)
 
   it("supports %identifier in log template", function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         testing = {
           javascript = [[console.log("%identifier", %identifier)]],
@@ -38,7 +38,7 @@ describe("neolog.actions.insert_log", function()
   end)
 
   it("supports %line_number in log template", function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         testing = {
           javascript = [[console.log("%line_number", %identifier)]],
@@ -66,7 +66,7 @@ describe("neolog.actions.insert_log", function()
   describe("supports %insert_cursor in log template", function()
     describe("move the the %insert_cursor placeholder and go to insert mode after inserting the log", function()
       it("supports single line template", function()
-        neolog.setup({
+        timber.setup({
           log_templates = {
             testing = {
               javascript = [[console.log("%identifier %insert_cursor", %identifier)]],
@@ -112,7 +112,7 @@ describe("neolog.actions.insert_log", function()
       end)
 
       it("supports single line template", function()
-        neolog.setup({
+        timber.setup({
           log_templates = {
             testing = {
               javascript = [[
@@ -165,7 +165,7 @@ describe("neolog.actions.insert_log", function()
     end)
 
     it("chooses the first statement if there are multiple", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           testing = {
             javascript = [[console.log("%identifier %insert_cursor", %identifier)]],
@@ -214,7 +214,7 @@ describe("neolog.actions.insert_log", function()
 
   describe("supports log template that doesn't contain %identifier", function()
     it("inserts the log statement at the above line if position is 'above'", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           plain = {
             javascript = [[console.log("Custom log %line_number")]],
@@ -239,7 +239,7 @@ describe("neolog.actions.insert_log", function()
       })
     end)
     it("inserts the log statement at the above line if position is 'above'", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           plain = {
             javascript = [[console.log("Custom log %line_number")]],
@@ -267,7 +267,7 @@ describe("neolog.actions.insert_log", function()
 
   describe("a log target belongs to multiple log containers", function()
     it("chooses the deepest container", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           testing = {
             javascript = [[console.log("Testing", %identifier)]],
@@ -320,7 +320,7 @@ describe("neolog.actions.insert_log", function()
   end)
 
   it("calls highlight.highlight_insert for inserted line", function()
-    neolog.setup()
+    timber.setup()
 
     local highlight_spy = spy.on(highlight, "highlight_insert")
 
@@ -425,7 +425,7 @@ describe("neolog.actions.insert_log", function()
     end)
 
     it("notifies when the filetype is not recognized", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           testing = {},
         },
@@ -490,7 +490,7 @@ describe("neolog.actions.insert_log", function()
     end)
 
     it("supports multi line template", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           default = {
             javascript = [[
@@ -538,7 +538,7 @@ describe("neolog.actions.insert_log", function()
   end)
 
   it("supports multi lines template", function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         default = {
           javascript = [[
@@ -575,7 +575,7 @@ describe("neolog.actions.insert_log", function()
 
   describe("supports surround log", function()
     it("specifies before and after templates", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           testing1 = {
             javascript = [[console.log("Testing")]],
@@ -607,7 +607,7 @@ describe("neolog.actions.insert_log", function()
     end)
 
     it("defaults to `default` if not specified before and after templates", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           default = {
             javascript = [[console.log("%identifier", %identifier)]],
@@ -674,7 +674,7 @@ describe("neolog.actions.insert_log", function()
     end)
 
     it("notifies when templates is used with position other than 'surround'", function()
-      neolog.setup()
+      timber.setup()
 
       local notify_spy = spy.on(utils, "notify")
       helper.assert_scenario({
@@ -696,7 +696,7 @@ describe("neolog.actions.insert_log", function()
     end)
 
     it("notifies when position is 'surround' but DOES NOT specify templates", function()
-      neolog.setup()
+      timber.setup()
 
       local notify_spy = spy.on(utils, "notify")
       helper.assert_scenario({
@@ -719,8 +719,8 @@ describe("neolog.actions.insert_log", function()
   end)
 
   it("supports operator mode", function()
-    require("neolog.config").reset_default_key_mappings()
-    neolog.setup({
+    require("timber.config").reset_default_key_mappings()
+    timber.setup({
       default_keymaps_enabled = false,
     })
 
@@ -766,9 +766,9 @@ describe("neolog.actions.insert_log", function()
   end)
 end)
 
-describe("neolog.actions.insert_batch_log", function()
+describe("timber.actions.insert_batch_log", function()
   before_each(function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         default = {
           javascript = [[console.log("%identifier", %identifier)]],
@@ -920,7 +920,7 @@ describe("neolog.actions.insert_batch_log", function()
   end)
 
   it("only supports %identifier inside %repeat", function()
-    neolog.setup({
+    timber.setup({
       batch_log_templates = {
         default = {
           javascript = [[console.log("%identifier", { %repeat<"%identifier": %identifier><, > })]],
@@ -1028,7 +1028,7 @@ describe("neolog.actions.insert_batch_log", function()
     it("notifies when the filetype is not recognized", function()
       local notify_spy = spy.on(utils, "notify")
 
-      neolog.setup({
+      timber.setup({
         batch_log_templates = {
           testing = {},
         },
@@ -1055,8 +1055,8 @@ describe("neolog.actions.insert_batch_log", function()
   end)
 
   it("supports operator mode", function()
-    require("neolog.config").reset_default_key_mappings()
-    neolog.setup({
+    require("timber.config").reset_default_key_mappings()
+    timber.setup({
       default_keymaps_enabled = false,
     })
 
@@ -1102,9 +1102,9 @@ describe("neolog.actions.insert_batch_log", function()
   end)
 end)
 
-describe("neolog.actions.add_log_targets_to_batch", function()
+describe("timber.actions.add_log_targets_to_batch", function()
   before_each(function()
-    neolog.setup()
+    timber.setup()
     actions.clear_batch()
   end)
 
@@ -1192,8 +1192,8 @@ describe("neolog.actions.add_log_targets_to_batch", function()
   end)
 
   it("supports operator mode", function()
-    require("neolog.config").reset_default_key_mappings()
-    neolog.setup({
+    require("timber.config").reset_default_key_mappings()
+    timber.setup({
       default_keymaps_enabled = false,
     })
 

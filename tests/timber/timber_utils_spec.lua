@@ -1,8 +1,8 @@
 local assert = require("luassert")
-local utils = require("neolog.utils")
-local helper = require("tests.neolog.helper")
+local utils = require("timber.utils")
+local helper = require("tests.timber.helper")
 
-describe("neolog.utils", function()
+describe("timber.utils", function()
   describe("ranges_intersect", function()
     it("returns true for overlapping ranges", function()
       -- -----

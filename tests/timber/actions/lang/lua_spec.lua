@@ -1,10 +1,10 @@
-local neolog = require("neolog")
-local helper = require("tests.neolog.helper")
-local actions = require("neolog.actions")
+local timber = require("timber")
+local helper = require("tests.timber.helper")
+local actions = require("timber.actions")
 
 describe("lua single log", function()
   before_each(function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         default = {
           lua = [[print("%identifier", %identifier)]],
@@ -713,7 +713,7 @@ end)
 
 describe("lua batch log", function()
   it("supports batch log", function()
-    neolog.setup({
+    timber.setup({
       batch_log_templates = {
         default = {
           lua = [[print(string.format("%repeat<%identifier=%s><, >", %repeat<%identifier><, >))]],

@@ -1,9 +1,9 @@
 local Job = require("plenary.job")
-local watcher = require("neolog.watcher")
+local watcher = require("timber.watcher")
 
 local M = {}
 
----@class SourceFilesystem
+---@class Timber.Watcher.Sources.Filesystem
 ---@field name string Name of the source
 ---@field source string File path
 ---@field on_log_capture function Callback when receiving log result
@@ -70,8 +70,8 @@ function SourceFilesystem:stop()
   end
 end
 
----@param source_spec SourceFilesystemSpec
----@param on_log_capture fun(log_entry: WatcherLogEntry)
+---@param source_spec Timber.Watcher.Sources.FilesystemSpec
+---@param on_log_capture fun(log_entry: Timber.Watcher.LogEntry)
 function M.new(source_spec, on_log_capture)
   local o = {
     name = source_spec.name,

@@ -1,6 +1,6 @@
 local M = {}
 
-local utils = require("neolog.utils")
+local utils = require("timber.utils")
 
 ---Sort the given nodes in the order that they would appear in a preorder traversal
 ---@param nodes TSNode[]
@@ -29,9 +29,9 @@ function M.query_log_target_container(lang, range)
   local tree = parser:parse()[1]
   local root = tree:root()
 
-  local query = vim.treesitter.query.get(lang, "neolog-log-container")
+  local query = vim.treesitter.query.get(lang, "timber-log-container")
   if not query then
-    vim.notify(string.format("neolog doesn't support %s language", lang), vim.log.levels.ERROR)
+    vim.notify(string.format("timber doesn't support %s language", lang), vim.log.levels.ERROR)
     return {}
   end
 
@@ -69,9 +69,9 @@ end
 ---@param lang string
 ---@return {container: TSNode, log_targets: TSNode[]}[]
 function M.find_log_targets(containers, lang)
-  local query = vim.treesitter.query.get(lang, "neolog-log-target")
+  local query = vim.treesitter.query.get(lang, "timber-log-target")
   if not query then
-    vim.notify(string.format("neolog doesn't support %s language", lang), vim.log.levels.ERROR)
+    vim.notify(string.format("timber doesn't support %s language", lang), vim.log.levels.ERROR)
     return {}
   end
 

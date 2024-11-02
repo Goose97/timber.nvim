@@ -1,5 +1,5 @@
-local helper = require("tests.neolog.helper")
-local actions = require("neolog.actions")
+local helper = require("tests.timber.helper")
+local actions = require("timber.actions")
 
 ---@param language string
 local run = function(language)

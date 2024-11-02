@@ -142,7 +142,7 @@ function M.log(message)
 end
 
 function M.log_test(message)
-  local log_file_path = "/tmp/neolog_debug.log"
+  local log_file_path = "/tmp/timber_debug.log"
   local log_file = io.open(log_file_path, "a")
   io.output(log_file)
   io.write(M.dump(message) .. "\n")
@@ -335,7 +335,7 @@ function M.notify(message, level)
     warn = "WarningMsg",
     error = "ErrorMsg",
   }
-  table.insert(message_with_hl, 1, { "(neolog) ", hl_group[level] })
+  table.insert(message_with_hl, 1, { "(timber) ", hl_group[level] })
 
   -- Echo. Force redraw to ensure that it is effective (`:h echo-redraw`)
   vim.cmd([[echo '' | redraw]])

@@ -1,5 +1,5 @@
----@class NeologHighlight
----@field config NeologHighlightConfig
+---@class Timber.Highlight.Module
+---@field config Timber.Highlight.Config
 ---@field hl_insert integer
 ---@field hl_add_to_batch integer
 ---@field insert_hl_timer any
@@ -16,7 +16,7 @@ function M.highlight_add_to_batch(log_target)
   vim.highlight.range(
     0,
     M.hl_add_to_batch,
-    "Neolog.AddToBatch",
+    "Timber.AddToBatch",
     { srow, scol },
     { erow, ecol },
     { regtype = "v", inclusive = false }
@@ -41,7 +41,7 @@ function M.highlight_insert(start_line_number, end_line_number)
   vim.highlight.range(
     0,
     M.hl_insert,
-    "Neolog.Insert",
+    "Timber.Insert",
     { start_line_number, 0 },
     { end_line_number or start_line_number, 0 },
     { regtype = "V", inclusive = false }
@@ -56,17 +56,17 @@ function M.highlight_insert(start_line_number, end_line_number)
   )
 end
 
----@param opts NeologHighlightConfig
+---@param opts Timber.Highlight.Config
 function M.setup()
-  M.config = require("neolog.config").config.highlight
+  M.config = require("timber.config").config.highlight
 
-  M.hl_insert = vim.api.nvim_create_namespace("neolog.insert_log")
-  M.hl_add_to_batch = vim.api.nvim_create_namespace("neolog.add_to_batch")
+  M.hl_insert = vim.api.nvim_create_namespace("timber.insert_log")
+  M.hl_add_to_batch = vim.api.nvim_create_namespace("timber.add_to_batch")
   M.insert_hl_timer = vim.uv.new_timer()
   M.add_to_batch_hl_timer = vim.uv.new_timer()
 
-  vim.api.nvim_set_hl(0, "Neolog.Insert", { link = "Search", default = true })
-  vim.api.nvim_set_hl(0, "Neolog.AddToBatch", { link = "Search", default = true })
+  vim.api.nvim_set_hl(0, "Timber.Insert", { link = "Search", default = true })
+  vim.api.nvim_set_hl(0, "Timber.AddToBatch", { link = "Search", default = true })
 end
 
 return M

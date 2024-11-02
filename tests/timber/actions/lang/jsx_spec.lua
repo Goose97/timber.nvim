@@ -1,10 +1,10 @@
-local neolog = require("neolog")
-local helper = require("tests.neolog.helper")
-local actions = require("neolog.actions")
+local timber = require("timber")
+local helper = require("tests.timber.helper")
+local actions = require("timber.actions")
 
 describe("javascriptreact", function()
   before_each(function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         default = {
           jsx = [[console.log("%identifier", %identifier)]],
@@ -13,8 +13,8 @@ describe("javascriptreact", function()
     })
   end)
 
-  require("tests.neolog.actions.lang.javascript_base")("javascriptreact")
-  require("tests.neolog.actions.lang.jsx_base")("javascriptreact")
+  require("tests.timber.actions.lang.javascript_base")("javascriptreact")
+  require("tests.timber.actions.lang.jsx_base")("javascriptreact")
 
   it("supports visual selection log", function()
     local input = [[

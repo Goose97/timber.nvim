@@ -1,10 +1,10 @@
-local neolog = require("neolog")
-local helper = require("tests.neolog.helper")
-local actions = require("neolog.actions")
+local timber = require("timber")
+local helper = require("tests.timber.helper")
+local actions = require("timber.actions")
 
-describe("neolog", function()
+describe("timber", function()
   it("provides default config", function()
-    neolog.setup()
+    timber.setup()
 
     helper.assert_scenario({
       input = [[
@@ -37,11 +37,11 @@ describe("neolog", function()
 
   describe("provides default keymaps", function()
     after_each(function()
-      require("neolog.config").reset_default_key_mappings()
+      require("timber.config").reset_default_key_mappings()
     end)
 
     it("setups default keymaps when `default_keymaps_enabled` is not specified", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           default = {
             typescript = [[console.log("%identifier", %identifier)]],
@@ -75,7 +75,7 @@ describe("neolog", function()
     end)
 
     it("setups default keymaps when `default_keymaps_enabled` is true", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           default = {
             typescript = [[console.log("%identifier", %identifier)]],
@@ -110,7 +110,7 @@ describe("neolog", function()
     end)
 
     it("setups default keymaps when `default_keymaps_enabled` is false", function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           default = {
             typescript = [[console.log("%identifier", %identifier)]],
@@ -144,7 +144,7 @@ describe("neolog", function()
 
   describe("allows configure custom keymaps", function()
     before_each(function()
-      neolog.setup({
+      timber.setup({
         log_templates = {
           default = {
             typescript = [[console.log("%identifier", %identifier)]],
@@ -163,7 +163,7 @@ describe("neolog", function()
     end)
 
     after_each(function()
-      require("neolog.config").reset_default_key_mappings()
+      require("timber.config").reset_default_key_mappings()
     end)
 
     it("disable default keymaps", function()
@@ -202,7 +202,7 @@ describe("neolog", function()
   end)
 
   it("allows configure multiple log templates", function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         with_bar_123 = { typescript = [[console.log("%identifier bar 123", %identifier)]] },
       },

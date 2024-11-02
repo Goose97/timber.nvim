@@ -1,10 +1,10 @@
 local assert = require("luassert")
-local neolog = require("neolog")
-local highlight = require("neolog.highlight")
-local config = require("neolog.config")
-local helper = require("tests.neolog.helper")
+local timber = require("timber")
+local highlight = require("timber.highlight")
+local config = require("timber.config")
+local helper = require("tests.timber.helper")
 
-describe("neolog.highlight.highlight_add_to_batch", function()
+describe("timber.highlight.highlight_add_to_batch", function()
   describe("on_add_to_batch is TRUE", function()
     it("highlights the given node", function()
       config.setup({ highlight = { duration = 100, on_add_to_batch = true } })
@@ -47,14 +47,14 @@ describe("neolog.highlight.highlight_add_to_batch", function()
           assert.equals(1, start_row)
           assert.equals(6, start_col)
           assert.equals(9, details.end_col)
-          assert.equals("Neolog.AddToBatch", details.hl_group)
+          assert.equals("Timber.AddToBatch", details.hl_group)
         end,
       })
     end)
 
     it("remove the highlight after the configured duration", function()
       config.setup({ highlight = { duration = 500, on_add_to_batch = true } })
-      neolog.setup()
+      timber.setup()
 
       helper.assert_scenario({
         input = [[
@@ -135,7 +135,7 @@ describe("neolog.highlight.highlight_add_to_batch", function()
   end)
 end)
 
-describe("neolog.highlight.highlight_insert", function()
+describe("timber.highlight.highlight_insert", function()
   describe("on_insert is TRUE", function()
     it("highlights the given line number", function()
       config.setup({ highlight = { duration = 100, on_insert = true } })
@@ -164,7 +164,7 @@ describe("neolog.highlight.highlight_insert", function()
           assert.equals(0, start_col)
           -- Because we are using V mode
           assert.equals(3, details.end_row)
-          assert.equals("Neolog.Insert", details.hl_group)
+          assert.equals("Timber.Insert", details.hl_group)
         end,
       })
     end)

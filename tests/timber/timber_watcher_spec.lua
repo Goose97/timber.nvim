@@ -1,11 +1,11 @@
 local assert = require("luassert")
-local watcher = require("neolog.watcher")
-local helper = require("tests.neolog.helper")
+local watcher = require("timber.watcher")
+local helper = require("tests.timber.helper")
 
 local function create_temp_file()
   -- Get the system's temporary directory
   local temp_dir = vim.fn.tempname():match("(.*[/\\])")
-  local filename = temp_dir .. "neolog_test_" .. os.time()
+  local filename = temp_dir .. "timber_test_" .. os.time()
 
   -- Create the file
   local file = io.open(filename, "w")
@@ -29,10 +29,10 @@ local function write_to_file(filename, content)
   end
 end
 
-describe("neolog.watcher.sources.setup", function()
+describe("timber.watcher.sources.setup", function()
   describe("supports filesystem source", function()
     after_each(function()
-      require("neolog.watcher.sources").stop()
+      require("timber.watcher.sources").stop()
     end)
 
     it("supports single line log", function()
@@ -47,7 +47,7 @@ describe("neolog.watcher.sources.setup", function()
 
       local received_log_entry = nil
 
-      require("neolog.watcher.sources").setup({
+      require("timber.watcher.sources").setup({
         sources = specs,
         on_log_capture = function(log_entry)
           received_log_entry = log_entry
@@ -83,7 +83,7 @@ describe("neolog.watcher.sources.setup", function()
 
       local received_log_entry = nil
 
-      require("neolog.watcher.sources").setup({
+      require("timber.watcher.sources").setup({
         sources = specs,
         on_log_capture = function(log_entry)
           received_log_entry = log_entry

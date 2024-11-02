@@ -1,26 +1,24 @@
-local utils = require("neolog.utils")
+local utils = require("timber.utils")
 
----@alias LogPlaceholderId string
-
----@class LogPlaceholderContent
+---@class Timber.Buffers.LogPlaceholderEntries
 ---@field body string
 ---@field source_name string
 ---@field timestamp integer
 
----@class LogPlaceholder
----@field id LogPlaceholderId
+---@class Timber.Buffers.LogPlaceholder
+---@field id Timber.Watcher.LogPlaceholderId
 ---@field bufnr number
 ---@field line number 0-indexed line number. The line number is only correct when the placeholder is newly created. Overtime, after updates, the real line number will be shifted.
 ---@field extmark_id? integer
----@field contents LogPlaceholderContent[]
+---@field entries Timber.Buffers.LogPlaceholderEntries[]
 
----@alias LogPlaceholderRegistry table<LogPlaceholderId, LogPlaceholder>
+---@alias Timber.Buffers.LogPlaceholderRegistry table<Timber.Watcher.LogPlaceholderId, Timber.Buffers.LogPlaceholder>
 
----@class Neolog.Buffers
----@field log_placeholders LogPlaceholderRegistry
+---@class Timber.Buffers
+---@field log_placeholders Timber.Buffers.LogPlaceholderRegistry
 ---@field seen_buffers integer[] Buffers has been opened and processed
 ---@field attached_buffers integer[] Buffers currently being attached to
----@field pending_log_entries WatcherLogEntry[] Log entries that didn't have a corresponding placeholder. They will be processed once the placeholder is created
+---@field pending_log_entries Timber.Watcher.LogEntry[] Log entries that didn't have a corresponding placeholder. They will be processed once the placeholder is created
 ---@field placeholder_render_timer any Timer to keep updating the placeholder snippet
 local M = { log_placeholders = {}, seen_buffers = {}, attached_buffers = {}, pending_log_entries = {} }
 
@@ -34,13 +32,13 @@ end
 ---@param content string
 ---@param bufnr integer
 ---@param line integer 0-indexed line number
----@return LogPlaceholderId? placeholder_id
+---@return Timber.Watcher.LogPlaceholderId? placeholder_id
 local function process_line(content, bufnr, line)
   local placeholder_id = parse_log_placeholder(content)
 
   if placeholder_id and M.log_placeholders[placeholder_id] == nil then
     vim.schedule(function()
-      M.new_log_placeholder({ id = placeholder_id, bufnr = bufnr, line = line, contents = {} })
+      M.new_log_placeholder({ id = placeholder_id, bufnr = bufnr, line = line, entries = {} })
     end)
 
     return placeholder_id
@@ -67,9 +65,9 @@ local function relative_time(timestamp)
   return ">15 minutes ago"
 end
 
----@param log_placeholder LogPlaceholder
+---@param log_placeholder Timber.Buffers.LogPlaceholder
 local function render_placeholder_snippet(log_placeholder)
-  local content = log_placeholder.contents[#log_placeholder.contents]
+  local content = log_placeholder.entries[#log_placeholder.entries]
   if not content then
     return
   end
@@ -79,7 +77,7 @@ local function render_placeholder_snippet(log_placeholder)
     return
   end
 
-  local preview_snippet_length = require("neolog.config").config.log_watcher.preview_snippet_length
+  local preview_snippet_length = require("timber.config").config.log_watcher.preview_snippet_length
   local snippet = content.body
 
   if #snippet > preview_snippet_length then
@@ -96,15 +94,15 @@ local function render_placeholder_snippet(log_placeholder)
     vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.log_placeholder_ns, row, col, {
       id = log_placeholder.extmark_id,
       virt_text = {
-        { "■ " .. snippet, "Neolog.LogPlaceholderSnippet" },
-        { " " .. relative_time(content.timestamp), "Neolog.LogPlaceholderTime" },
+        { "■ " .. snippet, "Timber.LogPlaceholderSnippet" },
+        { " " .. relative_time(content.timestamp), "Timber.LogPlaceholderTime" },
       },
       virt_text_pos = "eol",
     })
   end
 end
 
----@param log_placeholder LogPlaceholder
+---@param log_placeholder Timber.Buffers.LogPlaceholder
 local function remove_placeholder_snippet(log_placeholder)
   local is_loaded = vim.api.nvim_buf_is_loaded(log_placeholder.bufnr)
   if not is_loaded then
@@ -240,13 +238,13 @@ local function attach_buffer(bufnr)
 end
 
 ---Callback for log entry received
---- @param entry WatcherLogEntry
-function M.on_log_entry_received(entry)
+--- @param entry Timber.Watcher.LogEntry
+function M.receive_log_entry(entry)
   local log_placeholder = M.log_placeholders[entry.log_placeholder_id]
 
   if log_placeholder then
     table.insert(
-      log_placeholder.contents,
+      log_placeholder.entries,
       { body = entry.payload, source_name = entry.source_name, timestamp = entry.timestamp }
     )
 
@@ -259,7 +257,7 @@ function M.on_log_entry_received(entry)
   end
 end
 
----@param log_placeholder LogPlaceholder
+---@param log_placeholder Timber.Buffers.LogPlaceholder
 function M.new_log_placeholder(log_placeholder)
   if M.log_placeholders[log_placeholder.id] then
     return
@@ -275,7 +273,7 @@ function M.new_log_placeholder(log_placeholder)
   -- Check the pending log entries and process ones targeting this placeholder
   for _, entry in ipairs(M.pending_log_entries) do
     if entry.log_placeholder_id == log_placeholder.id then
-      M.on_log_entry_received(entry)
+      M.receive_log_entry(entry)
     end
   end
 
@@ -284,13 +282,13 @@ function M.new_log_placeholder(log_placeholder)
   end)
 end
 
----@param contents LogPlaceholderContent[]
+---@param entries Timber.Buffers.LogPlaceholderEntries[]
 ---@return string[] lines
 ---@return integer[] separators 0-indexed line numbers of separator lines
 ---@return boolean has_total_entries
-local function prepare_floating_window_content(contents)
+local function prepare_floating_window_content(entries)
   local entry_lines = {}
-  for _, content in ipairs(contents) do
+  for _, content in ipairs(entries) do
     table.insert(entry_lines, vim.split(content.body, "\n"))
   end
 
@@ -302,14 +300,14 @@ local function prepare_floating_window_content(contents)
     end
   end
 
-  local has_total_entries = #contents > 1
+  local has_total_entries = #entries > 1
   local buf_content = {}
   local separators = {}
   local line_count = 0
 
   local total_entries_line
   if has_total_entries then
-    total_entries_line = utils.string_left_pad(string.format("%d entries", #contents), max_width)
+    total_entries_line = utils.string_left_pad(string.format("%d entries", #entries), max_width)
     table.insert(buf_content, total_entries_line)
     line_count = line_count + 1
   end
@@ -318,7 +316,7 @@ local function prepare_floating_window_content(contents)
     vim.list_extend(buf_content, lines)
     line_count = line_count + #lines
 
-    if i < #contents then
+    if i < #entries then
       local separator_width = math.max(max_width, #total_entries_line)
       table.insert(buf_content, string.rep("─", separator_width))
       table.insert(separators, line_count)
@@ -330,12 +328,12 @@ local function prepare_floating_window_content(contents)
 end
 
 ---Render a floating window showing placeholder content
----@param placeholder LogPlaceholder
+---@param placeholder Timber.Buffers.LogPlaceholder
 ---@param opts? { silent?: boolean }
 local function show_placeholder_full_content(placeholder, opts)
   opts = vim.tbl_extend("force", { silent = false }, opts or {})
 
-  if not placeholder.contents or #placeholder.contents == 0 then
+  if not placeholder.entries or #placeholder.entries == 0 then
     if not opts.silent then
       utils.notify("Log placeholder has no content", "warn")
     end
@@ -343,7 +341,7 @@ local function show_placeholder_full_content(placeholder, opts)
     return
   end
 
-  local lines, separators, has_total_entries = prepare_floating_window_content(placeholder.contents)
+  local lines, separators, has_total_entries = prepare_floating_window_content(placeholder.entries)
 
   local window_config = {
     relative = "cursor",
@@ -353,17 +351,17 @@ local function show_placeholder_full_content(placeholder, opts)
     focusable = true,
     style = "minimal",
     border = "single",
-    title = placeholder.contents[1].source_name,
+    title = placeholder.entries[1].source_name,
   }
 
   local bufnr = vim.lsp.util.open_floating_preview(lines, "plaintext", window_config)
 
   if has_total_entries then
-    vim.api.nvim_buf_add_highlight(bufnr, M.log_placeholder_ns, "Neolog.LogPlaceholderTotalEntries", 0, 0, -1)
+    vim.api.nvim_buf_add_highlight(bufnr, M.log_placeholder_ns, "Timber.LogPlaceholderTotalEntries", 0, 0, -1)
   end
 
   for _, i in ipairs(separators) do
-    vim.api.nvim_buf_add_highlight(bufnr, M.log_placeholder_ns, "Neolog.LogPlaceholderSeparator", i, 0, -1)
+    vim.api.nvim_buf_add_highlight(bufnr, M.log_placeholder_ns, "Timber.LogPlaceholderSeparator", i, 0, -1)
   end
 end
 
@@ -398,18 +396,18 @@ end
 
 function M.clear_logs()
   for _, log_placeholder in pairs(M.log_placeholders) do
-    log_placeholder.contents = {}
+    log_placeholder.entries = {}
     remove_placeholder_snippet(log_placeholder)
   end
 end
 
 function M.setup()
-  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderSnippet", { link = "DiagnosticVirtualTextInfo", default = true })
-  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderTime", { italic = true })
-  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderTotalEntries", { link = "CursorLineNr" })
-  vim.api.nvim_set_hl(0, "Neolog.LogPlaceholderSeparator", { link = "FloatBorder" })
+  vim.api.nvim_set_hl(0, "Timber.LogPlaceholderSnippet", { link = "DiagnosticVirtualTextInfo", default = true })
+  vim.api.nvim_set_hl(0, "Timber.LogPlaceholderTime", { italic = true })
+  vim.api.nvim_set_hl(0, "Timber.LogPlaceholderTotalEntries", { link = "CursorLineNr" })
+  vim.api.nvim_set_hl(0, "Timber.LogPlaceholderSeparator", { link = "FloatBorder" })
 
-  M.log_placeholder_ns = vim.api.nvim_create_namespace("neolog.log_placeholder")
+  M.log_placeholder_ns = vim.api.nvim_create_namespace("timber.log_placeholder")
 
   vim.api.nvim_create_autocmd("BufRead", {
     callback = function(args)

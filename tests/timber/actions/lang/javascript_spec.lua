@@ -1,31 +1,31 @@
-local neolog = require("neolog")
-local helper = require("tests.neolog.helper")
-local actions = require("neolog.actions")
+local timber = require("timber")
+local helper = require("tests.timber.helper")
+local actions = require("timber.actions")
 
-describe("typescript single log", function()
+describe("javascript single log", function()
   before_each(function()
-    neolog.setup({
+    timber.setup({
       log_templates = {
         default = {
-          typescript = [[console.log("%identifier", %identifier)]],
+          javascript = [[console.log("%identifier", %identifier)]],
         },
       },
     })
   end)
 
-  require("tests.neolog.actions.lang.javascript_base")("typescript")
+  require("tests.timber.actions.lang.javascript_base")("javascript")
 end)
 
-describe("typescript batch log", function()
+describe("javascript batch log", function()
   before_each(function()
     actions.clear_batch()
   end)
 
   it("supports batch log", function()
-    neolog.setup({
+    timber.setup({
       batch_log_templates = {
         default = {
-          typescript = [[console.log("Testing %line_number", { %repeat<"%identifier": %identifier><, > })]],
+          javascript = [[console.log("Testing %line_number", { %repeat<"%identifier": %identifier><, > })]],
         },
       },
     })
@@ -38,7 +38,7 @@ describe("typescript batch log", function()
 
     helper.assert_scenario({
       input = input,
-      filetype = "typescript",
+      filetype = "javascript",
       action = function()
         vim.cmd("normal! V2j")
         actions.add_log_targets_to_batch()

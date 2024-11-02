@@ -1,10 +1,10 @@
 local assert = require("luassert")
 local spy = require("luassert.spy")
-local neolog = require("neolog")
-local buffers = require("neolog.buffers")
-local watcher = require("neolog.watcher")
-local utils = require("neolog.utils")
-local helper = require("tests.neolog.helper")
+local timber = require("timber")
+local buffers = require("timber.buffers")
+local watcher = require("timber.watcher")
+local utils = require("timber.utils")
+local helper = require("tests.timber.helper")
 
 local function get_extmarks(line, details)
   details = details == nil and false or details
@@ -24,7 +24,7 @@ local function nums_of_windows()
   return #wins
 end
 
-describe("neolog.buffers autocmd", function()
+describe("timber.buffers autocmd", function()
   before_each(function()
     buffers.setup()
   end)
@@ -238,14 +238,14 @@ describe("neolog.buffers autocmd", function()
   end)
 end)
 
-describe("neolog.buffers.new_log_placeholder", function()
+describe("timber.buffers.new_log_placeholder", function()
   before_each(function()
     buffers.setup()
   end)
 
   it("adds the placeholder to the registry", function()
     local id = watcher.generate_unique_id()
-    buffers.new_log_placeholder({ id = id, bufnr = 1, line = 1, contents = {} })
+    buffers.new_log_placeholder({ id = id, bufnr = 1, line = 1, entries = {} })
 
     assert.is.Not.Nil(buffers.log_placeholders[id])
   end)
@@ -258,7 +258,7 @@ describe("neolog.buffers.new_log_placeholder", function()
       filetype = "typescript",
       action = function()
         local bufnr = vim.api.nvim_get_current_buf()
-        buffers.new_log_placeholder({ id = "foo", bufnr = bufnr, line = 0, contents = {} })
+        buffers.new_log_placeholder({ id = "foo", bufnr = bufnr, line = 0, entries = {} })
         vim.fn.setreg("a", string.format([[console.log("%s%s|")]], watcher.MARKER, id), "V")
         vim.cmd([[normal! "ap]])
         helper.wait(20)
@@ -274,14 +274,14 @@ describe("neolog.buffers.new_log_placeholder", function()
   end)
 end)
 
-describe("neolog.buffers.on_log_entry_received", function()
+describe("timber.buffers.receive_log_entry", function()
   before_each(function()
     buffers.setup()
   end)
 
   describe("given the log entry has a corresponding placeholder", function()
     it("renders the placeholder preview snippet", function()
-      neolog.setup()
+      timber.setup()
       local id = watcher.generate_unique_id()
 
       helper.assert_scenario({
@@ -298,7 +298,7 @@ describe("neolog.buffers.on_log_entry_received", function()
         filetype = "typescript",
         action = function()
           helper.wait(20)
-          buffers.on_log_entry_received({
+          buffers.receive_log_entry({
             log_placeholder_id = id,
             payload = "foo",
             source_name = "Test",
@@ -319,7 +319,7 @@ describe("neolog.buffers.on_log_entry_received", function()
     end)
 
     it("uses the latest entry as the placeholder preview snippet", function()
-      neolog.setup()
+      timber.setup()
       local id = watcher.generate_unique_id()
 
       helper.assert_scenario({
@@ -336,14 +336,14 @@ describe("neolog.buffers.on_log_entry_received", function()
         filetype = "typescript",
         action = function()
           helper.wait(20)
-          buffers.on_log_entry_received({
+          buffers.receive_log_entry({
             log_placeholder_id = id,
             payload = "foo",
             source_name = "Test",
             timestamp = os.time(),
           })
           helper.wait(20)
-          buffers.on_log_entry_received({
+          buffers.receive_log_entry({
             log_placeholder_id = id,
             payload = "bar",
             source_name = "Test",
@@ -365,7 +365,7 @@ describe("neolog.buffers.on_log_entry_received", function()
 
     describe("given the payload is longer than `log_watcher.preview_snippet_length` characters", function()
       it("renders the first `log_watcher.preview_snippet_length` characters", function()
-        neolog.setup({
+        timber.setup({
           log_watcher = {
             preview_snippet_length = 8,
           },
@@ -387,7 +387,7 @@ describe("neolog.buffers.on_log_entry_received", function()
           filetype = "typescript",
           action = function()
             helper.wait(20)
-            buffers.on_log_entry_received({
+            buffers.receive_log_entry({
               log_placeholder_id = id,
               payload = "foo_123456789_123456890",
               source_name = "Test",
@@ -409,9 +409,9 @@ describe("neolog.buffers.on_log_entry_received", function()
 
   describe("given the log entry has NO corresponding placeholder", function()
     it("saves the log entry and renders it once the placeholder is created", function()
-      neolog.setup()
+      timber.setup()
       local id = watcher.generate_unique_id()
-      buffers.on_log_entry_received({
+      buffers.receive_log_entry({
         log_placeholder_id = id,
         payload = "foo",
         source_name = "Test",
@@ -444,14 +444,14 @@ describe("neolog.buffers.on_log_entry_received", function()
   end)
 end)
 
-describe("neolog.buffers.open_float", function()
+describe("timber.buffers.open_float", function()
   before_each(function()
     buffers.setup()
   end)
 
   describe("given the current line has a log placeholder", function()
-    describe("given the placeholder has some contents", function()
-      it("shows all the contents in a floating window", function()
+    describe("given the placeholder has some entries", function()
+      it("shows all the entries in a floating window", function()
         local id = watcher.generate_unique_id()
 
         helper.assert_scenario({
@@ -468,13 +468,13 @@ describe("neolog.buffers.open_float", function()
           filetype = "typescript",
           action = function()
             helper.wait(20)
-            buffers.on_log_entry_received({
+            buffers.receive_log_entry({
               log_placeholder_id = id,
               payload = "foo_1",
               source_name = "Test",
               timestamp = os.time(),
             })
-            buffers.on_log_entry_received({
+            buffers.receive_log_entry({
               log_placeholder_id = id,
               payload = "foo_2",
               source_name = "Test",
@@ -516,7 +516,7 @@ describe("neolog.buffers.open_float", function()
           filetype = "typescript",
           action = function()
             helper.wait(20)
-            buffers.on_log_entry_received({
+            buffers.receive_log_entry({
               log_placeholder_id = id,
               payload = "foo_123456789_123456890",
               source_name = "Test",
@@ -537,7 +537,7 @@ describe("neolog.buffers.open_float", function()
       end)
     end)
 
-    describe("given the placeholder has NO contents", function()
+    describe("given the placeholder has NO entries", function()
       it("notifies users with a warning message", function()
         local id = watcher.generate_unique_id()
         local notify_spy = spy.on(utils, "notify")

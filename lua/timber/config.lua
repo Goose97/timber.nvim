@@ -1,30 +1,24 @@
-local utils = require("neolog.utils")
+local utils = require("timber.utils")
 
----@alias Template string
----@alias NeologLogTemplates { [string]: Template }
-
----@class NeologHighlightConfig
+---@class Timber.Highlight.Config
 ---@field on_insert? boolean Whether to highlight the log target when inserting the log. Defaults to `true`
 ---@field on_add_to_batch? boolean Whether to highlight the log target when adding to the batch. Defaults to `true`
 ---@field duration number The timeout in ms for highlighting
 
----@class NeologWatcherConfig
+---@class Timber.Watcher.Config
 ---@field enabled? boolean Whether to enable log watcher. Defaults to `false`
----@field sources SourceSpecs The sources to watch
+---@field sources Timber.Watcher.SourceSpecs The sources to watch
 ---@field preview_snippet_length? integer The length of the preview snippet display as extmarks. Defaults to `32`
 
----@alias NeologAction 'insert_log_below' | 'insert_log_above' | 'insert_batch_log' | 'add_log_targets_to_batch'
----@alias NeologOperator 'insert_log_below_operator' | 'insert_log_above_operator' | 'insert_batch_log_operator' | 'add_log_targets_to_batch_operator'
-
----@class NeologConfig
----@field log_templates { [string]: NeologLogTemplates }
----@field batch_log_templates { [string]: NeologLogTemplates }
----@field highlight NeologHighlightConfig
----@field keymaps { [NeologAction | NeologOperator]: string }
+---@class Timber.Config
+---@field log_templates { [string]: Timber.LogTemplates }
+---@field batch_log_templates { [string]: Timber.LogTemplates }
+---@field highlight Timber.Highlight.Config
+---@field keymaps { [Timber.Action | Timber.Operator]: string }
 ---@field default_keymaps_enabled boolean Whether to enable default keymaps. Defaults to `true`
----@field log_watcher NeologWatcherConfig
+---@field log_watcher Timber.Watcher.Config
 
----@type NeologConfig
+---@type Timber.Config
 local default_config = {
   log_templates = {
     default = {
@@ -67,8 +61,8 @@ local default_config = {
   },
 }
 
----@class NeologConfigModule
----@field config NeologConfig
+---@class TimberConfigModule
+---@field config Timber.Config
 local M = {}
 
 ---@param template_set string
@@ -121,38 +115,38 @@ end
 
 local function setup_keymaps()
   setup_keymap("insert_log_below", "glj", function()
-    require("neolog.actions").insert_log({
+    require("timber.actions").insert_log({
       position = "below",
     })
   end, { mode = { "n", "v" } })
 
   setup_keymap("insert_log_above", "glk", function()
-    require("neolog.actions").insert_log({
+    require("timber.actions").insert_log({
       position = "above",
     })
   end, { mode = { "n", "v" } })
 
   setup_keymap("insert_batch_log", "glb", function()
-    require("neolog.actions").insert_batch_log()
+    require("timber.actions").insert_batch_log()
   end, { mode = "n" })
 
   setup_keymap("insert_batch_log", "glb", function()
-    require("neolog.actions").insert_batch_log({ auto_add = true })
+    require("timber.actions").insert_batch_log({ auto_add = true })
   end, { mode = "v" })
 
   setup_keymap("add_log_targets_to_batch", "gla", function()
-    require("neolog.actions").add_log_targets_to_batch()
+    require("timber.actions").add_log_targets_to_batch()
   end, { mode = { "n", "v" } })
 
   setup_keymap("insert_log_below_operator", "g<S-l>j", function()
-    return require("neolog.actions").insert_log({
+    return require("timber.actions").insert_log({
       position = "below",
       operator = true,
     })
   end, { mode = "n" })
 
   setup_keymap("insert_log_above_operator", "g<S-l>k", function()
-    return require("neolog.actions").insert_log({
+    return require("timber.actions").insert_log({
       position = "above",
       operator = true,
     })
@@ -179,7 +173,7 @@ function M.reset_default_key_mappings()
   reset_keymap("g<S-l>b", { "n" })
 end
 
----@param config NeologInitConfig?
+---@param config Timber.InitConfig?
 function M.setup(config)
   local base_config = vim.deepcopy(default_config)
   local user_config = config or {}

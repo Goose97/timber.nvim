@@ -1,11 +1,13 @@
----@class WatcherLogEntry
+---@class Timber.Watcher.LogEntry
 ---@field log_placeholder_id string
 ---@field payload string
 ---@field source_name string
 ---@field timestamp integer
 
-local sources = require("neolog.watcher.sources")
-local buffers = require("neolog.buffers")
+---@alias Timber.Watcher.LogPlaceholderId string
+
+local sources = require("timber.watcher.sources")
+local buffers = require("timber.buffers")
 
 local M = { MARKER = "🪵", ID_LENGTH = 3 }
 
@@ -34,16 +36,14 @@ function M.stop()
   sources.stop()
 end
 
----@alias SourceSpecs SourceFilesystemSpec[]
-
----@param source_specs SourceSpecs
+---@param source_specs Timber.Watcher.SourceSpecs
 function M.setup(source_specs)
   math.randomseed(os.time())
 
   sources.setup({
     sources = source_specs,
     on_log_capture = function(log_entry)
-      buffers.on_log_entry_received(log_entry)
+      buffers.receive_log_entry(log_entry)
     end,
   })
 end

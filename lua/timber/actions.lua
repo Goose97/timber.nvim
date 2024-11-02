@@ -1,15 +1,15 @@
----@class NeologActions
+---@class Timber.Actions.Module
 --- @field batch TSNode[]
 local M = { batch = {} }
 
-local config = require("neolog.config")
-local highlight = require("neolog.highlight")
-local watcher = require("neolog.watcher")
-local buffers = require("neolog.buffers")
-local treesitter = require("neolog.actions.treesitter")
-local utils = require("neolog.utils")
+local config = require("timber.config")
+local highlight = require("timber.highlight")
+local watcher = require("timber.watcher")
+local buffers = require("timber.buffers")
+local treesitter = require("timber.actions.treesitter")
+local utils = require("timber.utils")
 
----@class LogStatementInsert
+---@class Timber.Actions.PendingLogStatement The log statements to be inserted
 ---@field content string The log statement content
 ---@field row integer The (0-indexed) row number to insert
 ---@field insert_cursor_offset? integer The offset of the %insert_cursor placeholder if any
@@ -17,22 +17,20 @@ local utils = require("neolog.utils")
 ---@field inserted_rows? integer[] The actual row numbers of the inserted log statement. This field only exists when the insert is commited
 ---@field placeholder_id? string The log placeholder id if any
 
---- @alias LogPosition "above" | "below" | "surround"
+--- @alias Timber.Actions.LogPosition "above" | "below" | "surround"
 --- @alias range {[1]: number, [2]: number, [3]: number, [4]: number}
 --- @alias cursor_position {[1]: number, [2]: number}
 
---- @class InsertLogReturn
---- @field cursor_moved boolean Whether the cursor position was moved
---- @field inserted_lines integer[] (0-indexed) row numbers of inserted lines
+---@class Timber.Actions.CurrentCommandArgument
+---@field insert_log? {[1]: Timber.Actions.InsertLogOptions, [2]: range, [3]: range}
+---@field insert_batch_log? {[1]: Timber.Actions.InsertBatchLogOptions, [2]: range?}
+---@field add_log_targets_to_batch? {[1]: Timber.Actions.AddLogTargetsToBatchOptions, [2]: range}
 
----@class NeologActionsState
----@field current_command_arguments table
----@field current_command_arguments.insert_log? {[1]: InsertLogOptions, [2]: range, [3]: range}
----@field current_command_arguments.insert_batch_log? {[1]: InsertBatchLogOptions, [2]: range?}
----@field current_command_arguments.add_log_targets_to_batch? {[1]: AddLogTargetsToBatchOptions, [2]: range}
+---@class Timber.Actions.State
+---@field current_command_arguments Timber.Actions.CurrentCommandArgument
 ---@field current_selection_range {[1]: number, [2]: number, [3]: number, [4]: number}?
 
----@type NeologActionsState
+---@type Timber.Actions.State
 local state = {
   current_command_arguments = {},
   current_selection_range = nil,
@@ -41,9 +39,9 @@ local state = {
 ---@param callback string
 local function make_dot_repeatable(callback)
   -- Reset the operatorfunc
-  vim.go.operatorfunc = "v:lua.require'neolog.utils'.NOOP"
+  vim.go.operatorfunc = "v:lua.require'timber.utils'.NOOP"
   vim.cmd("normal! g@l")
-  vim.go.operatorfunc = "v:lua.require'neolog.actions'." .. callback
+  vim.go.operatorfunc = "v:lua.require'timber.actions'." .. callback
 end
 
 ---@param insert_line integer
@@ -79,10 +77,11 @@ end
 ---   %line_number: the line_number number
 ---   %insert_cursor: after inserting the log statement, go to insert mode and place the cursor here.
 ---     If there's multiple log statements, choose the first one
+---   %watcher_marker_start and %watcher_marker_end: the start and end markers for timber.watchers
 ---@alias handler (fun(): string) | string
 ---@param log_template string
 ---@param handlers {identifier: handler, line_number: handler}
----@return string resolved_template, LogPlaceholderId? placeholder_id
+---@return string resolved_template, Timber.Watcher.LogPlaceholderId? placeholder_id
 local function resolve_template_placeholders(log_template, handlers)
   ---@type fun(string): string
   local invoke_handler = function(handler_name)
@@ -119,8 +118,8 @@ local function resolve_template_placeholders(log_template, handlers)
   return log_template, placeholder_id
 end
 
----@param statements LogStatementInsert[]
----@return LogStatementInsert[] after_insert_statements Updated statements after inserting
+---@param statements Timber.Actions.PendingLogStatement[]
+---@return Timber.Actions.PendingLogStatement[] after_insert_statements Updated statements after inserting
 ---@return {[1]: number, [2]: number}? insert_cursor_pos The insert cursor position trigger by %insert_cursor placeholder
 local function insert_log_statements(statements)
   local bufnr = vim.api.nvim_get_current_buf()
@@ -185,7 +184,7 @@ end
 ---   1. Place the cursor at the insert_cursor placeholder if any
 ---   2. Move the cursor back to the original position if needed
 ---   3. Add the log placeholder to the buffer manager
----@param log_statements LogStatementInsert[] The log statements after inserted
+---@param log_statements Timber.Actions.PendingLogStatement[] The log statements after inserted
 ---@param insert_cursor_pos {[1]: number, [2]: number}?
 ---@param original_cursor_position range?
 local function after_insert_log_statements(log_statements, insert_cursor_pos, original_cursor_position)
@@ -238,7 +237,7 @@ local function after_insert_log_statements(log_statements, insert_cursor_pos, or
         bufnr = vim.api.nvim_get_current_buf(),
         -- TODO: support multi line log statements
         line = log_statement.inserted_rows[1],
-        contents = {},
+        entries = {},
       })
     end
   end
@@ -355,7 +354,7 @@ end
 ---@param log_target TSNode
 ---@param log_container TSNode
 ---@param logable_range logable_range?
----@param position LogPosition
+---@param position Timber.Actions.LogPosition
 ---@return integer
 local function get_insert_row(log_target, log_container, logable_range, position)
   if not logable_range then
@@ -373,9 +372,9 @@ end
 
 ---@param log_template string
 ---@param lang string
----@param position LogPosition
+---@param position Timber.Actions.LogPosition
 ---@param selection_range range
----@return LogStatementInsert[]
+---@return Timber.Actions.PendingLogStatement[]
 local function build_capture_log_statements(log_template, lang, position, selection_range)
   local to_insert = {}
 
@@ -411,8 +410,8 @@ local function build_capture_log_statements(log_template, lang, position, select
 end
 
 ---@param log_template string
----@param position LogPosition
----@return LogStatementInsert
+---@param position Timber.Actions.LogPosition
+---@return Timber.Actions.PendingLogStatement
 local function build_non_capture_log_statement(log_template, position)
   local current_line = vim.fn.getpos(".")[2]
   local insert_row = position == "above" and current_line or current_line + 1
@@ -432,7 +431,7 @@ end
 ---@param log_template string
 ---@param batch TSNode[]
 ---@param insert_line integer
----@return LogStatementInsert
+---@return Timber.Actions.PendingLogStatement
 local function build_batch_log_statement(log_template, batch, insert_line)
   local result = log_template
 
@@ -534,12 +533,12 @@ function M.__insert_log(motion_type)
 end
 
 --- Insert log statement for the current identifier at the cursor
---- @class InsertLogOptions
+--- @class Timber.Actions.InsertLogOptions
 --- @field template string? Which template to use. Defaults to `default`
 --- @field templates { before: string, after: string }? Which templates to use for the log statement. Only used when position is `surround`. Defaults to `{ before = "default", after = "default" }`
---- @field position LogPosition
+--- @field position Timber.Actions.LogPosition
 --- @field operator? boolean Whether to go into operator mode
---- @param opts InsertLogOptions
+--- @param opts Timber.Actions.InsertLogOptions
 function M.insert_log(opts)
   local cursor_position = vim.fn.getpos(".")
   opts = vim.tbl_deep_extend("force", { template = "default", operator = false }, opts or {})
@@ -555,7 +554,7 @@ function M.insert_log(opts)
 
   state.current_command_arguments.insert_log = { opts, utils.get_selection_range(), cursor_position }
 
-  vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_log"
+  vim.go.operatorfunc = "v:lua.require'timber.actions'.__insert_log"
   if opts.operator then
     return "g@"
   else
@@ -599,18 +598,18 @@ function M.__insert_batch_log(motion_type)
 end
 
 --- Insert log statement for given batch
---- @class InsertBatchLogOptions
+--- @class Timber.Actions.InsertBatchLogOptions
 --- @field template string? Which template to use. Defaults to `default`
 --- @field auto_add? boolean Whether to automatically add the log target to the batch. Defaults to `false`
 --- @field operator? boolean Whether to go into operator mode. If `true`, it implies `auto_add` is `true`
---- @param opts InsertBatchLogOptions?
+--- @param opts Timber.Actions.InsertBatchLogOptions?
 function M.insert_batch_log(opts)
   opts = vim.tbl_deep_extend("force", { template = "default", auto_add = false }, opts or {})
   if opts.operator then
     opts.auto_add = true
   end
 
-  vim.go.operatorfunc = "v:lua.require'neolog.actions'.__insert_batch_log"
+  vim.go.operatorfunc = "v:lua.require'timber.actions'.__insert_batch_log"
   state.current_command_arguments.insert_batch_log = { opts, utils.get_selection_range() }
 
   if opts.operator then
@@ -662,15 +661,15 @@ function M.__add_log_targets_to_batch(motion_type)
   make_dot_repeatable("__add_log_targets_to_batch")
 end
 
----@class AddLogTargetsToBatchOptions
+---@class Timber.Actions.AddLogTargetsToBatchOptions
 ---@field operator? boolean Whether to go into operator mode
----@param opts AddLogTargetsToBatchOptions?
+---@param opts Timber.Actions.AddLogTargetsToBatchOptions?
 function M.add_log_targets_to_batch(opts)
   opts = vim.tbl_deep_extend("force", { operator = false }, opts or {})
   local cursor_position = vim.fn.getpos(".")
   state.current_command_arguments.add_log_targets_to_batch = { opts, utils.get_selection_range(), cursor_position }
 
-  vim.go.operatorfunc = "v:lua.require'neolog.actions'.__add_log_targets_to_batch"
+  vim.go.operatorfunc = "v:lua.require'timber.actions'.__add_log_targets_to_batch"
 
   if opts.operator then
     return "g@"
