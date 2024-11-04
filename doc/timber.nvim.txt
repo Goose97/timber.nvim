@@ -139,13 +139,15 @@ parentheses. It equals to `vi(glj`.
 ------------------------------------------------------------------------------
 2.4. API                                             *timber.nvim-actions.api*
 
-Users can invoke actions via the API.
+Users can invoke actions via the API. Action APIs are defined in the
+`timber.actions` module.
 
   :h timber.actions.insert_log
   :h timber.actions.insert_batch_log
   :h timber.actions.add_log_targets_to_batch
 
-timber.actions.insert_log({opts})                *timber.actions.insert_log()*
+
+actions.insert_log({opts})                       *timber.actions.insert_log()*
 
   Insert a log statement. The behavior depends on the template provided:
 
@@ -178,7 +180,8 @@ timber.actions.insert_log({opts})                *timber.actions.insert_log()*
     {operator}            (boolean)               whether to go use operator
                                                   mode. Default: false
 
-timber.actions.insert_batch_log({opts})    *timber.actions.insert_batch_log()*
+
+actions.insert_batch_log({opts})           *timber.actions.insert_batch_log()*
 
   Insert a batch log statement.
 
@@ -199,7 +202,8 @@ timber.actions.insert_batch_log({opts})    *timber.actions.insert_batch_log()*
   See: ~
     |timber.actions.add_log_targets_to_batch|
 
-timber.actions.add_log_targets_to_batch({opts})   *timber.actions.add_log_targets_to_batch()*
+
+actions.add_log_targets_to_batch({opts})          *timber.actions.add_log_targets_to_batch()*
 
   Add a log target to the batch. In Visual mode, add all log targets in the
   selection range.
@@ -214,14 +218,16 @@ timber.actions.add_log_targets_to_batch({opts})   *timber.actions.add_log_target
   See: ~
     |timber.actions.insert_batch_log|
 
-timber.actions.get_batch_size({opts})        *timber.actions.get_batch_size()*
+
+actions.get_batch_size({opts})               *timber.actions.get_batch_size()*
 
   Get the number of log targets in the batch.
 
   Return: ~
     - integer
 
-timber.actions.clear_batch({opts})              *timber.actions.clear_batch()*
+
+actions.clear_batch({opts})                     *timber.actions.clear_batch()*
 
   Clear all log targets in the batch.
 
