@@ -1,0 +1,437 @@
+*timber.nvim.txt* A plugin to quickly insert log statements and display log
+results inline.
+
+Author: Duc Nguyen <https://www.github.com/Goose97>
+License: MIT License
+
+==============================================================================
+CONTENTS                                                *timber.nvim-contents*
+
+  1. Introduction ................................. |timber.nvim-introduction|
+  2. Actions ........................................... |timber.nvim-actions|
+    2.1. Insert log statements .............. |timber.nvim-actions.insert-log|
+    2.2. Insert batch log statements .. |timber.nvim-actions.insert-batch-log|
+    2.3. Insert log operators ................ |timber.nvim-actions.operators|
+    2.4. API ....................................... |timber.nvim-actions.api|
+  3. Configuration ...................................... |timber.nvim-config|
+    3.1. Default configuration .................. |timber.nvim-config.default|
+    3.2. Log templates .................... |timber.nvim-config.log-templates|
+    3.3. Keymaps ................................ |timber.nvim-config.keymaps|
+    3.4. Highlight ............................ |timber.nvim-config.highlight|
+
+==============================================================================
+1. Introduction                                     *timber.nvim-introduction*
+
+|timber.nvim| is a plugin for quickly inserting log statements and capturing
+their results right inside Neovim. This plugin uses Treesitter to
+intelligently capture the log targets and determine log placements. It also
+supports mass log insertion through visual mode. To capture the log results,
+the plugin monitors different sources provided by the user, for example, a
+log file.
+
+|timber.nvim| has two main operations:
+
+- Insert log statements to the buffer
+- Capture and display log results inline
+
+==============================================================================
+2. Actions                                               *timber.nvim-actions*
+
+------------------------------------------------------------------------------
+2.1. Insert log statements                    *timber.nvim-actions.insert-log*
+
+Insert log statements operates in two modes:
+
+  1. Normal mode: Inserts a log statement for the log target at the cursor
+  2. Visual mode: Inserts log statements for all log targets in the selection
+     range
+
+The add operation has two variations: above and below, which decides the
+placement of the log statement. The default keymaps are:
+
+  - `glj`: Add a log statement below ([G]o [L]og below)
+  - `glk`: Add a log statement above ([G]o [L]og above)
+
+Each operation requires a log template to be provided, and the log template
+must supports the current filetype. The filetype is determined via
+`vim.bo.filtype`. |timber.nvim| provides some templates out of the box, which
+has a special template called `default`. The `default` template is used when no
+template is provided.
+
+In all of the following examples, we use the `default` template and default
+keymaps. The `|` denotes the cursor position. If there're two `|`s, it means
+we are in visual mode, and each `|` denotes the boundary of the selection range.
+
+  Old text                    Command         New text ~
+  --------------------------------------------------------------
+  local str = "H|ello"        glj             local str = "Hello"
+                                              print("str", str)
+  --------------------------------------------------------------
+  foo(st|r)                   glk             print("str", str)
+                                              foo(str)
+  --------------------------------------------------------------
+  |local foo = bar + baz|     glj             local foo = bar + baz
+                                              print("foo", foo)
+                                              print("bar", bar)
+                                              print("baz", baz)
+  --------------------------------------------------------------
+  |foo(bar, baz)|             glk             print("bar", bar)
+                                              print("baz", baz)
+                                              foo(bar, baz)
+
+You can customize the content of the log statement by providing a template.
+See |timber.nvim-config.templates| for more information.
+
+------------------------------------------------------------------------------
+2.2. Insert batch log statements        *timber.nvim-actions.insert-batch-log*
+
+Batch log statements are log statements that capture multiple log targets.
+Instead of having multiple log statements, we can group them into a single
+one. For example:
+
+>lua
+  local foo = bar + baz
+  print(string.format("foo=%s, bar=%s, baz=%s", foo, bar, baz))
+<
+
+Two ways to use batch log are:
+
+  1. Add batch log in Visual mode. It will capture all log targets in the
+     selection range.
+  2. Manually add log targets to the batch. After that, insert the batch
+     log statement and empty the batch. While being more verbose, this allows
+     greater control over which log targets are captured.
+
+The default keymaps are:
+
+  - *glb*: Add a batch log below ([G]o [L]og [B]atch)
+  - *gla*: Add a batch log ([G]o [L]og [A]dd to batch)
+
+In all of the following examples, we use the `default` template and default
+keymaps. The `|` denotes the cursor position. If there're two `|`s, it means
+we are in visual mode, and each `|` denotes the boundary of the selection range.
+
+  Old text                    Command         New text ~
+  ----------------------------------------------------------------------------------------------
+  if |foo > bar| then         glb             if foo > bar then
+    return nil				        print(string.format("foo=%s, bar=%s", foo, bar))
+  end                                           return nil
+                                              end
+  ----------------------------------------------------------------------------------------------
+  if f|oo > bar then          gla2wglaglb     if foo > bar then
+    return nil				        print(string.format("foo=%s, bar=%s", foo, bar))
+  end                                           return nil
+                                              end
+
+------------------------------------------------------------------------------
+2.3. Operators                                 *timber.nvim-actions.operators*
+
+|timber.nvim| provides operators for each of the above actions. The default
+mappings are:
+
+  - *g<S-l>j*: Add log statements below operator
+  - *g<S-l>k*: Add log statements above operator
+  - *g<S-l>b*: Add a batch log statement operator
+  - *g<S-l>a*: Add log targets to the batch operator
+
+For each action, the operator version works similar with the normal action in Visual
+mode. For example, `g<S-l>ji(` will add log statements for all log targets inside the
+parentheses. It equals to `vi(glj`.
+
+------------------------------------------------------------------------------
+2.4. API                                             *timber.nvim-actions.api*
+
+Users can invoke actions via the API.
+
+  :h timber.actions.insert_log
+  :h timber.actions.insert_batch_log
+  :h timber.actions.add_log_targets_to_batch
+
+timber.actions.insert_log({opts})                *timber.actions.insert_log()*
+
+  Insert a log statement. The behavior depends on the template provided:
+
+    - If the template contains `%identifier` placeholder, capture the log
+      target at the cursor position.
+    - If the template contains NO `%identifier` placeholder, insert a log
+      statement at the below and above line, depending on the `position` option.
+
+  Parameters: ~
+    {opts} (table)  options to pass to the action
+
+  Options: ~
+    {template}            (string)                template for the log
+                                                  statement. Default: "default"
+    {templates}           (table)                 `{ before = string, after = string }`
+                                                  templates for the log
+                                                  statement with "surround"
+                                                  position. The `before`
+                                                  template will be used for
+                                                  the log statement above the
+                                                  cursor, and the `after`
+                                                  template will be used for the
+                                                  log statement below the cursor.
+                                                  If either templates are not
+                                                  provided, use "default" template.
+    {position}            (string)                insert position for the
+                                                  log statement. Supported
+                                                  values: "above", "below",
+                                                  "surround"
+    {operator}            (boolean)               whether to go use operator
+                                                  mode. Default: false
+
+timber.actions.insert_batch_log({opts})    *timber.actions.insert_batch_log()*
+
+  Insert a batch log statement.
+
+  Parameters: ~
+    {opts} (table)  options to pass to the action
+
+  Options: ~
+    {template}            (string)                template for the batch log
+                                                  statement. Default: "default"
+    {auto_add}            (string)                automatically add the log
+                                                  the log targets the the
+                                                  batch before inserting the batch
+                                                  log. This field is `true` if
+						  operator is `true`. Default: false
+    {operator}            (boolean)               whether to go use operator
+                                                  mode. Default: false
+
+  See: ~
+    |timber.actions.add_log_targets_to_batch|
+
+timber.actions.add_log_targets_to_batch({opts})   *timber.actions.add_log_targets_to_batch()*
+
+  Add a log target to the batch. In Visual mode, add all log targets in the
+  selection range.
+
+  Parameters: ~
+    {opts} (table)  options to pass to the action
+
+  Options: ~
+    {operator}            (boolean)               whether to go use operator
+                                                  mode. Default: false
+
+  See: ~
+    |timber.actions.insert_batch_log|
+
+timber.actions.get_batch_size({opts})        *timber.actions.get_batch_size()*
+
+  Get the number of log targets in the batch.
+
+  Return: ~
+    - integer
+
+timber.actions.clear_batch({opts})              *timber.actions.clear_batch()*
+
+  Clear all log targets in the batch.
+
+==============================================================================
+3. Configuration                                          *timber.nvim-config*
+
+|timber.nvim| is highly configurable. The configuration is broke down into multiple
+parts which are laid out in the following sections. It also provides a default
+configuration.
+
+timber.setup({opts})                                          *timber.setup()*
+
+  Initialize the plugin.
+
+  Parameters: ~
+    {opts} (table)  options to pass to the setup function
+
+  Options: ~
+    {log_templates}            (table)            A table of log templates to
+                                                  use. See *timber.nvim-config.log_templates*
+    {batch_log_templates}      (table)            A table of batch log templates to
+                                                  use. See *timber.nvim-config.log_templates*
+    {keymaps}                  (table)            Keymaps for actions and operators.
+                                                  See *timber.nvim-config.keymaps*
+    {highlight}                (table)            Highlight configuration for actions.
+                                                  See *timber.nvim-config.highlight*
+
+  See: ~
+    *timber.nvim-config.default*
+    *timber.nvim-config.log_templates*
+    *timber.nvim-config.keymaps*
+    *timber.nvim-config.highlight*
+
+------------------------------------------------------------------------------
+3.1. Default configuration                        *timber.nvim-config.default*
+
+>lua
+  {
+    log_templates = {
+      default = {
+	javascript = [[console.log("%identifier", %identifier)]],
+	typescript = [[console.log("%identifier", %identifier)]],
+	jsx = [[console.log("%identifier", %identifier)]],
+	tsx = [[console.log("%identifier", %identifier)]],
+	lua = [[print("%identifier", %identifier)]],
+      },
+    },
+    batch_log_templates = {
+      default = {
+	javascript = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
+	typescript = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
+	jsx = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
+	tsx = [[console.log({ %repeat<"%identifier": %identifier><, > })]],
+	lua = [[print(string.format("%repeat<%identifier=%s><, >", %repeat<%identifier><, >))]],
+      },
+    },
+    keymaps = {
+      insert_log_below = "glj",
+      insert_log_above = "glk",
+      insert_batch_log = "glb",
+      add_log_targets_to_batch = "gla",
+      insert_log_below_operator = "g<S-l>j",
+      insert_log_above_operator = "g<S-l>k",
+      insert_batch_log_operator = "g<S-l>b",
+      add_log_targets_to_batch_operator = "g<S-l>a",
+    },
+    default_keymaps_enabled = true,
+    highlight = {
+      on_insert = true,
+      on_add_to_batch = true,
+      duration = 500,
+    },
+    log_watcher = {
+      enabled = false,
+      sources = {},
+      preview_snippet_length = 32,
+    },
+  }
+<
+
+------------------------------------------------------------------------------
+3.2. Log templates                          *timber.nvim-config.log-templates*
+
+`log_templates` determines the content of the log statements. The format is as
+follows: `{ [template_name]: { [language]: string } }`. `batch_log_templates` is
+similar, but for batch log statements.
+
+To use the template, specify the template name when using actions.
+
+>lua
+  require('timber.actions').insert_log({
+    template = "plain",
+  })
+<
+
+Log template string supports special placeholders that will be expanded during
+runtime to provide more information about the log context. The supported
+placeholders are:
+
+  - `%identifier`: the identifier text
+
+>lua
+      -- Template: [[print("LOG %identifier", %identifier)]]
+      local foo = 1
+      print("LOG foo", foo)
+<
+
+  - `%line_number`: the line number of the log target. If the log template
+    doesn't have a log target, line_number will be the current line at the
+    cursor
+
+>lua
+      -- Template: [[print("LOG %line_number", %identifier)]]
+      local foo = 1
+      print("LOG 1", foo)
+<
+
+`batch_log_templates` is similar, but for batch log statements. It supports
+all placeholders supported by `log_templates`, plus:
+
+  - `%repeat`: This placeholder will be repeatat for each log target in the
+    batch. The format is: `%repeat<content><separator>`. Inside `content`, you
+    can use all placeholders supported by `log_templates`.
+
+>lua
+      -- Template: [[print(string.format("LOG %repeat<%identifier=%s><, >", %repeat<%identifier><, >))]]
+      local foo = bar + baz
+      print("LOG foo=%s, bar=%s, baz=%s", foo, bar, baz)
+<
+
+See the default configuration for some examples.
+
+------------------------------------------------------------------------------
+3.3. Keymaps                                      *timber.nvim-config.keymaps*
+
+|timber.nvim| provides default keymaps for common actions:
+
+  Action name                           Mapping      Lua API ~
+  -----------------------------------------------------------------------------------------------------------------
+  insert_log_below                      glj          vim.keymap.set({ "n", "v" }, "glj", function()
+                                                       require("timber.actions").insert_log({ position = "below" })
+                                                     end)
+  -----------------------------------------------------------------------------------------------------------------
+  insert_log_above                      glk          vim.keymap.set({ "n", "v" }, "glk", function()
+                                                       require("timber.actions").insert_log({ position = "above" })
+                                                     end)
+  -----------------------------------------------------------------------------------------------------------------
+  insert_batch_log                      glb          vim.keymap.set("n", "glb", function()
+                                                       require("timber.actions").insert_batch_log()
+                                                     end)
+                                                     vim.keymap.set("v", "glb", function()
+                                                       require("timber.actions").insert_batch_log({
+							 auto_add = true
+						       })
+                                                     end)
+  -----------------------------------------------------------------------------------------------------------------
+  add_log_targets_to_batch              gla         vim.keymap.set({ "n", "v" }, "gla", function()
+                                                     require("timber.actions").add_log_targets_to_batch()
+                                                    end)
+  -----------------------------------------------------------------------------------------------------------------
+  insert_log_below_operator             g<S-l>j     vim.keymap.set("n", "g<S-l>j", function()
+                                                      require("timber.actions").insert_log({
+                                                        position = "below",
+                                                        operator = true
+                                                      })
+                                                    end, { expr = true })
+  -----------------------------------------------------------------------------------------------------------------
+  insert_log_above_operator             g<S-l>k     vim.keymap.set("n", "g<S-l>k", function()
+                                                      require("timber.actions").insert_log({
+                                                        position = "above",
+                                                        operator = true
+                                                      })
+                                                    end, { expr = true })
+  -----------------------------------------------------------------------------------------------------------------
+  insert_batch_log_operator             g<S-l>b     vim.keymap.set("n", "g<S-l>b", function()
+                                                      require("timber.actions").insert_log({ operator = true })
+                                                    end, { expr = true })
+  -----------------------------------------------------------------------------------------------------------------
+  add_log_targets_to_batch_operator     g<S-l>a     vim.keymap.set("n", "g<S-l>a", function()
+                                                      require("timber.actions").add_log_targets_to_batch({
+                                                        operator = true
+                                                      })
+                                                    end, { expr = true })
+
+To disable default keymaps, you can either:
+
+- Set `default_keymaps_enabled = false` in the config
+- Set `keymaps[action] = false` to disable a specific action. For example:
+
+>lua
+  keymaps = {
+    insert_log_below = false,
+    insert_log_above = false,
+  }
+<
+
+ will disable the default `insert_log_below` and `insert_log_above` keymaps.
+
+------------------------------------------------------------------------------
+3.4. Highlight					*timber.nvim-config.highlight*
+
+Control highlight behaviors when insert log statements or add log targets to
+batch. |timber.nvim| uses the following highlight groups:
+
+  Group                 Default         Description ~
+  ------------------------------------------------------------------------------------
+  Timber.Insert         Search          Flash highlight for inserted log statements
+  ------------------------------------------------------------------------------------
+  Timber.AddToBatch     Search          Flash highlight for log targets added to batch
+
+vim:tw=78:ts=8:noet:ft=help:norl:

@@ -98,7 +98,7 @@ function M.get_lang_log_template(template_set, kind)
   return log_template_lang, lang
 end
 
-local function setup_keymap(name, lhs, rhs, opts)
+local function setup_keymap(name, rhs, opts)
   local keymaps = M.config.keymaps
 
   local user_keymap = keymaps[name]
@@ -110,47 +110,59 @@ local function setup_keymap(name, lhs, rhs, opts)
 
   local mode = opts.mode
   opts.mode = nil
-  vim.keymap.set(mode, user_keymap or lhs, rhs, opts)
+  vim.keymap.set(mode, user_keymap, rhs, opts)
 end
 
 local function setup_keymaps()
-  setup_keymap("insert_log_below", "glj", function()
+  setup_keymap("insert_log_below", function()
     require("timber.actions").insert_log({
       position = "below",
     })
   end, { mode = { "n", "v" } })
 
-  setup_keymap("insert_log_above", "glk", function()
+  setup_keymap("insert_log_above", function()
     require("timber.actions").insert_log({
       position = "above",
     })
   end, { mode = { "n", "v" } })
 
-  setup_keymap("insert_batch_log", "glb", function()
+  setup_keymap("insert_batch_log", function()
     require("timber.actions").insert_batch_log()
   end, { mode = "n" })
 
-  setup_keymap("insert_batch_log", "glb", function()
+  setup_keymap("insert_batch_log", function()
     require("timber.actions").insert_batch_log({ auto_add = true })
   end, { mode = "v" })
 
-  setup_keymap("add_log_targets_to_batch", "gla", function()
+  setup_keymap("add_log_targets_to_batch", function()
     require("timber.actions").add_log_targets_to_batch()
   end, { mode = { "n", "v" } })
 
-  setup_keymap("insert_log_below_operator", "g<S-l>j", function()
+  setup_keymap("insert_log_below_operator", function()
     return require("timber.actions").insert_log({
       position = "below",
       operator = true,
     })
-  end, { mode = "n" })
+  end, { mode = "n", expr = true })
 
-  setup_keymap("insert_log_above_operator", "g<S-l>k", function()
+  setup_keymap("insert_log_above_operator", function()
     return require("timber.actions").insert_log({
       position = "above",
       operator = true,
     })
-  end, { mode = "n" })
+  end, { mode = "n", expr = true })
+
+  setup_keymap("insert_batch_log_operator", function()
+    return require("timber.actions").insert_batch_log({
+      operator = true,
+    })
+  end, { mode = "n", expr = true })
+
+  setup_keymap("add_log_targets_to_batch_operator", function()
+    return require("timber.actions").insert_batch_log({
+      operator = true,
+    })
+  end, { mode = "n", expr = true })
 end
 
 -- This function is used during testing
