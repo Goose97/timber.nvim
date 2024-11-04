@@ -87,13 +87,11 @@ See |timber.nvim-config.templates| for more information.
 
 Batch log statements are log statements that capture multiple log targets.
 Instead of having multiple log statements, we can group them into a single
-one. For example:
+one. For example: >lua
 
->lua
   local foo = bar + baz
   print(string.format("foo=%s, bar=%s, baz=%s", foo, bar, baz))
 <
-
 Two ways to use batch log are:
 
   1. Add batch log in Visual mode. It will capture all log targets in the
@@ -259,7 +257,6 @@ timber.setup({opts})                                          *timber.setup()*
 
 ------------------------------------------------------------------------------
 3.1. Default configuration                        *timber.nvim-config.default*
-
 >lua
   {
     log_templates = {
@@ -303,7 +300,6 @@ timber.setup({opts})                                          *timber.setup()*
     },
   }
 <
-
 ------------------------------------------------------------------------------
 3.2. Log templates                          *timber.nvim-config.log-templates*
 
@@ -312,49 +308,41 @@ follows: `{ [template_name]: { [language]: string } }`. `batch_log_templates` is
 similar, but for batch log statements.
 
 To use the template, specify the template name when using actions.
-
 >lua
   require('timber.actions').insert_log({
     template = "plain",
   })
 <
-
 Log template string supports special placeholders that will be expanded during
 runtime to provide more information about the log context. The supported
 placeholders are:
 
-  - `%identifier`: the identifier text
+  - `%identifier`: the identifier text >lua
 
->lua
       -- Template: [[print("LOG %identifier", %identifier)]]
       local foo = 1
       print("LOG foo", foo)
 <
-
   - `%line_number`: the line number of the log target. If the log template
     doesn't have a log target, line_number will be the current line at the
-    cursor
+    cursor >lua
 
->lua
       -- Template: [[print("LOG %line_number", %identifier)]]
       local foo = 1
       print("LOG 1", foo)
 <
-
 `batch_log_templates` is similar, but for batch log statements. It supports
 all placeholders supported by `log_templates`, plus:
 
   - `%repeat`: This placeholder will be repeatat for each log target in the
     batch. The format is: `%repeat<content><separator>`. Inside `content`, you
-    can use all placeholders supported by `log_templates`.
+    can use all placeholders supported by `log_templates`. >lua
 
->lua
       -- Template: [[print(string.format("LOG %repeat<%identifier=%s><, >", %repeat<%identifier><, >))]]
       local foo = bar + baz
       print("LOG foo=%s, bar=%s, baz=%s", foo, bar, baz)
 <
-
-See the default configuration for some examples.
+See the default configuration for some examples of template.
 
 ------------------------------------------------------------------------------
 3.3. Keymaps                                      *timber.nvim-config.keymaps*
@@ -411,15 +399,14 @@ See the default configuration for some examples.
 To disable default keymaps, you can either:
 
 - Set `default_keymaps_enabled = false` in the config
-- Set `keymaps[action] = false` to disable a specific action. For example:
+- Set `keymaps[action] = false` to disable a specific action. For example: >lua
 
->lua
   keymaps = {
     insert_log_below = false,
     insert_log_above = false,
   }
 <
-
+Log template string supports special placeholders that will be expanded during
  will disable the default `insert_log_below` and `insert_log_above` keymaps.
 
 ------------------------------------------------------------------------------
