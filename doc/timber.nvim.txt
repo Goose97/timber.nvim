@@ -243,19 +243,19 @@ timber.setup({opts})                                          *timber.setup()*
 
   Options: ~
     {log_templates}            (table)            A table of log templates to
-                                                  use. See *timber.nvim-config.log_templates*
+                                                  use. See |timber.nvim-config.log_templates|
     {batch_log_templates}      (table)            A table of batch log templates to
-                                                  use. See *timber.nvim-config.log_templates*
+                                                  use. See |timber.nvim-config.log_templates|
     {keymaps}                  (table)            Keymaps for actions and operators.
-                                                  See *timber.nvim-config.keymaps*
+                                                  See |timber.nvim-config.keymaps|
     {highlight}                (table)            Highlight configuration for actions.
-                                                  See *timber.nvim-config.highlight*
+                                                  See |timber.nvim-config.highlight|
 
   See: ~
-    *timber.nvim-config.default*
-    *timber.nvim-config.log_templates*
-    *timber.nvim-config.keymaps*
-    *timber.nvim-config.highlight*
+    |timber.nvim-config.default|
+    |timber.nvim-config.log_templates|
+    |timber.nvim-config.keymaps|
+    |timber.nvim-config.highlight|
 
 ------------------------------------------------------------------------------
 3.1. Default configuration                        *timber.nvim-config.default*
