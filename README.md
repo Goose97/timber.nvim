@@ -13,7 +13,7 @@ Insert log statements blazingly fast and capture log results inline 🪵
 
 ## Requirements
 
-- [Neovim 0.8+](https://github.com/neovim/neovim/releases)
+- [Neovim 0.10+](https://github.com/neovim/neovim/releases)
 - [Recommended] [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter): to support languages, users need to install appropriate Treesitter parsers. `nvim-treesitter` provides an easy interface to manage them.
 
 ## Installation
