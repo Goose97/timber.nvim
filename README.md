@@ -64,6 +64,8 @@ The default configuration comes with a set of default keymaps:
 
 Detailed information on how to configure keymaps can be found in [`:h timber.nvim-config.keymaps`](https://github.com/Goose97/timber.nvim/blob/main/doc/timber.nvim.txt).
 
+See [Wiki](https://github.com/Goose97/timber.nvim/wiki/Example-mappings) for more keymap inspiration.
+
 ## Usage
 
 The core operation of `timber.nvim` inserting log statements. There are two kinds of log statements:
