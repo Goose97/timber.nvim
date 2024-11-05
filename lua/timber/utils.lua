@@ -345,12 +345,21 @@ end
 ---@param filetype string
 ---@return string?
 function M.get_lang(filetype)
-  -- Treesitter doesn't support jsx directly but through tsx
-  if filetype == "javascriptreact" then
-    return "tsx"
+  -- Source: https://github.com/folke/noice.nvim/blob/5070aaeab3d6bf3a422652e517830162afd404e0/lua/noice/text/treesitter.lua
+  local has_lang = function(lang)
+    local ok, ret = pcall(vim.treesitter.language.add, lang)
+
+    if vim.fn.has("nvim-0.11") == 1 then
+      return ok and ret
+    end
+
+    return ok
   end
 
-  return vim.treesitter.language.get_lang(vim.bo.filetype)
+  -- Treesitter doesn't support jsx directly but through tsx
+  local lang = filetype == "javascriptreact" and "tsx"
+    or (vim.treesitter.language.get_lang(vim.bo.filetype) or vim.bo.filetype)
+  return has_lang(lang) and lang or nil
 end
 
 return M

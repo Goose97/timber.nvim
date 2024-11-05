@@ -40,10 +40,16 @@ function M.query_log_target_container(lang, range)
   for _, match, metadata in query:iter_matches(root, bufnr, 0, -1) do
     ---@type TSNode
     local log_container = match[utils.get_key_by_value(query.captures, "log_container")]
+    -- Breaking changes: https://github.com/neovim/neovim/pull/30193
+    log_container = type(log_container) == "userdata" and log_container or log_container[1]
 
     if log_container and utils.ranges_intersect(utils.get_ts_node_range(log_container), range) then
       ---@type TSNode?
       local logable_range = match[utils.get_key_by_value(query.captures, "logable_range")]
+      -- Breaking changes: https://github.com/neovim/neovim/pull/30193
+      logable_range = type(logable_range) == "userdata" and logable_range
+        or logable_range ~= nil and logable_range[1]
+        or nil
 
       local logable_range_col_range
 
@@ -179,9 +185,16 @@ function M.setup()
     metadata.adjusted_logable_range = { adjusted_start_row, start_col, adjusted_end_row, end_col }
   end, { force = true })
 
+  local get_match_node = function(match, capture_id)
+    local node = match[capture_id]
+    -- Breaking changes: https://github.com/neovim/neovim/pull/30193
+    return type(node) == "userdata" and node --[[@as TSNode]]
+      or node[1]
+  end
+
   -- Similar to has-parent?, but also check the node is a field of the parent
   vim.treesitter.query.add_predicate("field-of-parent?", function(match, _, _, predicate)
-    local node = match[predicate[2]]
+    local node = get_match_node(match, predicate[2])
     local parent_type = predicate[3]
     local field_name = predicate[4]
 
@@ -190,7 +203,7 @@ function M.setup()
 
   -- The negation of field-of-parent?
   vim.treesitter.query.add_predicate("not-field-of-parent?", function(match, _, _, predicate)
-    local node = match[predicate[2]]
+    local node = get_match_node(match, predicate[2])
     local parent_type = predicate[3]
     local field_name = predicate[4]
 
@@ -199,7 +212,7 @@ function M.setup()
 
   -- Similar to has-ancestor?, but also check the node is in a field of the ancestor subtree
   vim.treesitter.query.add_predicate("field-of-ancestor?", function(match, _, _, predicate)
-    local node = match[predicate[2]]
+    local node = get_match_node(match, predicate[2])
     local ancestor_type = predicate[3]
     local field_name = predicate[4]
 
@@ -207,7 +220,7 @@ function M.setup()
   end, { force = true })
 
   vim.treesitter.query.add_predicate("not-field-of-ancestor?", function(match, _, _, predicate)
-    local node = match[predicate[2]]
+    local node = get_match_node(match, predicate[2])
     local ancestor_type = predicate[3]
     local field_name = predicate[4]
 

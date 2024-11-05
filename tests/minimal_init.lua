@@ -1,10 +1,10 @@
-local plenary_dir = os.getenv("PLENARY_DIR") or "/tmp/plenary.nvim"
+local plenary_dir = "./vendor/plenary.nvim"
 
 if vim.fn.isdirectory(plenary_dir) == 0 then
   vim.fn.system({ "git", "clone", "https://github.com/nvim-lua/plenary.nvim", plenary_dir })
 end
 
-local nvim_treesitter_dir = "/tmp/nvim-treesitter"
+local nvim_treesitter_dir = "./vendor/nvim-treesitter"
 if vim.fn.isdirectory(nvim_treesitter_dir) == 0 then
   vim.fn.system({ "git", "clone", "https://github.com/nvim-treesitter/nvim-treesitter.git", nvim_treesitter_dir })
 end
@@ -21,4 +21,6 @@ require("nvim-treesitter.configs").setup({
   sync_install = true,
   auto_install = false,
   indent = { enable = true },
+  modules = {},
+  ignore_install = {},
 })
