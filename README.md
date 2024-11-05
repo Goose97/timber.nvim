@@ -2,6 +2,8 @@
 
 Insert log statements blazingly fast and capture log results inline 🪵
 
+https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
+
 ## Features
 
 - Quickly insert log statements
