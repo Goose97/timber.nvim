@@ -14,11 +14,10 @@ local M = {}
 ---@param config Timber.InitConfig?
 M.setup = function(config)
   config_mod.setup(config)
-
   actions.setup()
   highlight.setup()
-
   buffers.setup()
+
   if config_mod.config.log_watcher.enabled then
     watcher.setup(config_mod.config.log_watcher.sources)
   end

@@ -7,10 +7,6 @@ local highlight = require("timber.highlight")
 local helper = require("tests.timber.helper")
 
 describe("timber.actions.insert_log", function()
-  before_each(function()
-    timber.setup()
-  end)
-
   it("supports %log_target in log template", function()
     timber.setup({
       log_templates = {
@@ -1243,5 +1239,139 @@ describe("timber.actions.add_log_targets_to_batch", function()
         assert.are.same(3, actions.get_batch_size())
       end,
     })
+  end)
+end)
+
+describe("timber.actions.clear_log_statements", function()
+  before_each(function()
+    timber.setup({
+      log_templates = {
+        default = {
+          lua = [[print("%log_target", %log_target)]],
+        },
+      },
+    })
+  end)
+
+  describe("given the global opts is false", function()
+    it("clears all statements ONLY in the current buffer", function()
+      local bufnr1 = helper.assert_scenario({
+        input = [[
+          local fo|o = "foo"
+          local bar = "bar"
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! vap")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          local foo = "foo"
+          print("foo", foo)
+          local bar = "bar"
+          print("bar", bar)
+        ]],
+      })
+
+      local bufnr2 = helper.assert_scenario({
+        input = [[
+          local fo|o = "foo"
+          local bar = "bar"
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! vap")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          local foo = "foo"
+          print("foo", foo)
+          local bar = "bar"
+          print("bar", bar)
+        ]],
+      })
+
+      vim.api.nvim_set_current_buf(bufnr1)
+      helper.wait(20)
+      actions.clear_log_statements({ global = false })
+
+      helper.assert_buf_content(
+        bufnr1,
+        [[
+          local foo = "foo"
+          local bar = "bar"
+        ]]
+      )
+
+      helper.assert_buf_content(
+        bufnr2,
+        [[
+          local foo = "foo"
+          print("foo", foo)
+          local bar = "bar"
+          print("bar", bar)
+        ]]
+      )
+    end)
+  end)
+
+  describe("given the global opts is true", function()
+    it("clears all statements in ALL buffers", function()
+      local bufnr1 = helper.assert_scenario({
+        input = [[
+          local fo|o = "foo"
+          local bar = "bar"
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! vap")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          local foo = "foo"
+          print("foo", foo)
+          local bar = "bar"
+          print("bar", bar)
+        ]],
+      })
+
+      local bufnr2 = helper.assert_scenario({
+        input = [[
+          local fo|o = "foo"
+          local bar = "bar"
+        ]],
+        filetype = "lua",
+        action = function()
+          vim.cmd("normal! vap")
+          actions.insert_log({ position = "below" })
+        end,
+        expected = [[
+          local foo = "foo"
+          print("foo", foo)
+          local bar = "bar"
+          print("bar", bar)
+        ]],
+      })
+
+      vim.api.nvim_set_current_buf(bufnr1)
+      helper.wait(20)
+      actions.clear_log_statements({ global = true })
+
+      helper.assert_buf_content(
+        bufnr1,
+        [[
+          local foo = "foo"
+          local bar = "bar"
+        ]]
+      )
+
+      helper.assert_buf_content(
+        bufnr2,
+        [[
+          local foo = "foo"
+          local bar = "bar"
+        ]]
+      )
+    end)
   end)
 end)

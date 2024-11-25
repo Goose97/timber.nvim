@@ -51,8 +51,8 @@ describe("timber.buffers autocmd", function()
         expected = function()
           -- Internally, we add the placeholder in the next tick using vim.schedule, hence the wait
           helper.wait(20)
-          assert.is.Not.Nil(buffers.log_placeholders[id1])
-          assert.is.Not.Nil(buffers.log_placeholders[id2])
+          assert.is.Not.Nil(buffers.log_placeholders:get(id1))
+          assert.is.Not.Nil(buffers.log_placeholders:get(id2))
         end,
       })
     end)
@@ -83,8 +83,8 @@ describe("timber.buffers autocmd", function()
             helper.wait(20)
           end,
           expected = function()
-            assert.is.Nil(buffers.log_placeholders[id1])
-            assert.is.Not.Nil(buffers.log_placeholders[id2])
+            assert.is.Nil(buffers.log_placeholders:get(id1))
+            assert.is.Not.Nil(buffers.log_placeholders:get(id2))
 
             assert.equals(#get_extmarks(0), 0)
             assert.equals(#get_extmarks(1), 1)
@@ -116,8 +116,8 @@ describe("timber.buffers autocmd", function()
             helper.wait(20)
           end,
           expected = function()
-            assert.is.Nil(buffers.log_placeholders[id3])
-            assert.is.Nil(buffers.log_placeholders[id4])
+            assert.is.Nil(buffers.log_placeholders:get(id3))
+            assert.is.Nil(buffers.log_placeholders:get(id4))
 
             assert.equals(#get_extmarks(0), 0)
             assert.equals(#get_extmarks(1), 0)
@@ -148,8 +148,8 @@ describe("timber.buffers autocmd", function()
             helper.wait(20)
           end,
           expected = function()
-            assert.is.Not.Nil(buffers.log_placeholders[id1])
-            assert.is.Not.Nil(buffers.log_placeholders[id2])
+            assert.is.Not.Nil(buffers.log_placeholders:get(id1))
+            assert.is.Not.Nil(buffers.log_placeholders:get(id2))
 
             assert.equals(#get_extmarks(1), 1)
             assert.equals(#get_extmarks(2), 1)
@@ -174,7 +174,7 @@ describe("timber.buffers autocmd", function()
             helper.wait(20)
           end,
           expected = function()
-            assert.is.Nil(buffers.log_placeholders[id])
+            assert.is.Nil(buffers.log_placeholders:get(id))
 
             assert.equals(#get_extmarks(1), 0)
           end,
@@ -247,7 +247,7 @@ describe("timber.buffers.new_log_placeholder", function()
     local id = watcher.generate_unique_id()
     buffers.new_log_placeholder({ id = id, bufnr = 1, line = 1, entries = {} })
 
-    assert.is.Not.Nil(buffers.log_placeholders[id])
+    assert.is.Not.Nil(buffers.log_placeholders:get(id))
   end)
 
   it("attaches to the buffer and reacts to buffer changes", function()
@@ -267,8 +267,8 @@ describe("timber.buffers.new_log_placeholder", function()
       expected = function()
         -- Internally, we add the placeholder in the next tick using vim.schedule, hence the wait
         helper.wait(20)
-        assert.is.Nil(buffers.log_placeholders.foo)
-        assert.is.Not.Nil(buffers.log_placeholders[id])
+        assert.is.Nil(buffers.log_placeholders:get("foo"))
+        assert.is.Not.Nil(buffers.log_placeholders:get(id))
       end,
     })
   end)

@@ -6,6 +6,7 @@ local M = {}
 ---@param lines string[]
 ---@param cursor {[1]: number, [2]: number}?
 ---@param filetype string
+---@return integer bufnr
 local function setup_buffer(lines, cursor, filetype)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_set_option_value("filetype", filetype, { buf = buf })
@@ -17,13 +18,8 @@ local function setup_buffer(lines, cursor, filetype)
   if cursor then
     vim.api.nvim_win_set_cursor(0, cursor)
   end
-end
 
----Assert the output of the current buffer.
----@param lines string[]
-local function assert_buf_output(lines)
-  local output = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-  assert.are.same(lines, output)
+  return buf
 end
 
 ---Trim the redundant whitespaces from the input lines.
@@ -79,11 +75,12 @@ end
 ---  const fo|o = "bar"
 ---  const bar = "baz"
 ---@param scenario Scenario
+---@return integer bufnr
 function M.assert_scenario(scenario)
   scenario = vim.tbl_extend("force", { input_cursor = "|" }, scenario)
 
   local input_lines, cursor = parse_input(scenario.input, scenario.input_cursor)
-  setup_buffer(input_lines, cursor, scenario.filetype)
+  local bufnr = setup_buffer(input_lines, cursor, scenario.filetype)
 
   if scenario.action then
     scenario.action()
@@ -99,8 +96,17 @@ function M.assert_scenario(scenario)
       error("Unexpected cursor position in scenario.expected")
     end
 
-    assert_buf_output(expected_lines)
+    local output = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    assert.are.same(expected_lines, output)
   end
+
+  return bufnr
+end
+
+function M.assert_buf_content(bufnr, expected)
+  local expected_lines = parse_input(expected, false)
+  local buf_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  assert.are.same(expected_lines, buf_lines)
 end
 
 ---@param duration number in milliseconds

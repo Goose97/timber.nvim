@@ -231,15 +231,13 @@ local function after_insert_log_statements(log_statements, insert_cursor_pos, or
 
   -- Add the log placeholder to the buffer manager
   for _, log_statement in ipairs(log_statements) do
-    if log_statement.placeholder_id then
-      buffers.new_log_placeholder({
-        id = log_statement.placeholder_id,
-        bufnr = vim.api.nvim_get_current_buf(),
-        -- TODO: support multi line log statements
-        line = log_statement.inserted_rows[1],
-        entries = {},
-      })
-    end
+    buffers.new_log_placeholder({
+      id = log_statement.placeholder_id,
+      bufnr = vim.api.nvim_get_current_buf(),
+      -- TODO: support multi line log statements
+      line = log_statement.inserted_rows[1],
+      entries = {},
+    })
   end
 end
 
@@ -720,6 +718,26 @@ end
 
 function M.clear_batch()
   M.batch = {}
+end
+
+---@class Timber.Actions.ClearLogStatementsOptions
+---@field global? boolean Whether to clear all buffers, or just the current buffer. Defaults to `false`
+---@param opts Timber.Actions.ClearLogStatementsOptions?
+function M.clear_log_statements(opts)
+  opts = vim.tbl_deep_extend("force", { global = false }, opts or {})
+  local lines_per_bufnr = buffers.get_log_statement_lines(not opts.global and vim.api.nvim_get_current_buf() or nil)
+
+  for bufnr, lines in pairs(lines_per_bufnr) do
+    -- Sort lines in descending order to avoid line number shifting
+    table.sort(lines, function(a, b)
+      return a > b
+    end)
+
+    -- Delete each line
+    for _, line_num in ipairs(lines) do
+      vim.api.nvim_buf_set_lines(bufnr, line_num, line_num + 1, false, {})
+    end
+  end
 end
 
 function M.setup()

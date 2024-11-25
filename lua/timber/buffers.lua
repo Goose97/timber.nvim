@@ -6,13 +6,24 @@ local utils = require("timber.utils")
 ---@field timestamp integer
 
 ---@class Timber.Buffers.LogPlaceholder
----@field id Timber.Watcher.LogPlaceholderId
+---@field id Timber.Watcher.LogPlaceholderId? The log placeholder id. It is only set when the log template has %watcher_marker_start
 ---@field bufnr number
 ---@field line number 0-indexed line number. The line number is only correct when the placeholder is newly created. Overtime, after updates, the real line number will be shifted.
 ---@field extmark_id? integer
 ---@field entries Timber.Buffers.LogPlaceholderEntries[]
 
----@alias Timber.Buffers.LogPlaceholderRegistry table<Timber.Watcher.LogPlaceholderId, Timber.Buffers.LogPlaceholder>
+---@class Timber.Buffers.LogPlaceholderRegistry
+---@field placeholders Timber.Buffers.LogPlaceholder[] List of log placeholders
+local LogPlaceholderRegistry = {}
+function LogPlaceholderRegistry.new()
+  local o = {
+    placeholders = {},
+  }
+
+  setmetatable(o, LogPlaceholderRegistry)
+  LogPlaceholderRegistry.__index = LogPlaceholderRegistry
+  return o
+end
 
 ---@class Timber.Buffers
 ---@field log_placeholders Timber.Buffers.LogPlaceholderRegistry
@@ -20,7 +31,57 @@ local utils = require("timber.utils")
 ---@field attached_buffers integer[] Buffers currently being attached to
 ---@field pending_log_entries Timber.Watcher.LogEntry[] Log entries that didn't have a corresponding placeholder. They will be processed once the placeholder is created
 ---@field placeholder_render_timer any Timer to keep updating the placeholder snippet
-local M = { log_placeholders = {}, seen_buffers = {}, attached_buffers = {}, pending_log_entries = {} }
+local M = {
+  log_placeholders = LogPlaceholderRegistry.new(),
+  seen_buffers = {},
+  attached_buffers = {},
+  pending_log_entries = {},
+}
+
+---Find a log placeholder by id
+---@param id Timber.Watcher.LogPlaceholderId
+---@return Timber.Buffers.LogPlaceholder?
+function LogPlaceholderRegistry:get(id)
+  for _, placeholder in ipairs(self.placeholders) do
+    if placeholder.id == id then
+      return placeholder
+    end
+  end
+end
+
+---Add a log placeholder to the registry. Noop if the placeholder already exists
+---@param placeholder Timber.Buffers.LogPlaceholder
+function LogPlaceholderRegistry:add(placeholder)
+  local existing = placeholder.id and self:get(placeholder.id) or nil
+  if not existing then
+    table.insert(self.placeholders, placeholder)
+  end
+end
+
+---Remove a log placeholder
+---@param id Timber.Watcher.LogPlaceholderId
+function LogPlaceholderRegistry:remove(id)
+  self.placeholders = utils.array_filter(self.placeholders, function(placeholder)
+    return placeholder.id ~= id
+  end)
+end
+
+---Remove a log placeholder by extmark id. The extmark id is unique to a buffer so we need to pass in bufnr as well
+---@param extmark_id integer
+---@param bufnr integer
+function LogPlaceholderRegistry:remove_by_extmark_id(extmark_id, bufnr)
+  self.placeholders = utils.array_filter(self.placeholders, function(placeholder)
+    return placeholder.extmark_id ~= extmark_id or placeholder.bufnr ~= bufnr
+  end)
+end
+
+---Return all log placeholders in a buffer
+---@param bufnr integer
+function LogPlaceholderRegistry:buffer_placeholders(bufnr)
+  return utils.array_filter(self.placeholders, function(placeholder)
+    return placeholder.bufnr == bufnr
+  end)
+end
 
 ---@param line string
 ---@return string? placeholder_id
@@ -36,7 +97,7 @@ end
 local function process_line(content, bufnr, line)
   local placeholder_id = parse_log_placeholder(content)
 
-  if placeholder_id and M.log_placeholders[placeholder_id] == nil then
+  if placeholder_id and not M.log_placeholders:get(placeholder_id) then
     vim.schedule(function()
       M.new_log_placeholder({ id = placeholder_id, bufnr = bufnr, line = line, entries = {} })
     end)
@@ -149,26 +210,6 @@ local function detach_buffer(bufnr)
   end
 end
 
----@param extmark_id integer
----@param bufnr integer
-local function delete_placeholder_by_extmark_id(extmark_id, bufnr)
-  local buf_remain_placeholders = 0
-
-  for placeholder_id, placeholder in pairs(M.log_placeholders) do
-    if placeholder.bufnr == bufnr then
-      if placeholder.extmark_id == extmark_id then
-        M.log_placeholders[placeholder_id] = nil
-      else
-        buf_remain_placeholders = buf_remain_placeholders + 1
-      end
-    end
-  end
-
-  if buf_remain_placeholders == 0 then
-    detach_buffer(bufnr)
-  end
-end
-
 local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
   -- local index = utils.array_find_index(M.attached_buffers, function(v)
   --   return v == bufnr
@@ -208,7 +249,7 @@ local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
         return true
       end
 
-      return mark[1] ~= M.log_placeholders[line_placeholder].extmark_id
+      return mark[1] ~= M.log_placeholders:get(line_placeholder).extmark_id
     end)
 
     for _, mark in ipairs(marks) do
@@ -216,7 +257,12 @@ local function on_lines(_, bufnr, _, first_line, last_line, new_last_line, _)
 
       vim.schedule(function()
         vim.api.nvim_buf_del_extmark(bufnr, M.log_placeholder_ns, mark_id)
-        delete_placeholder_by_extmark_id(mark_id, bufnr)
+        M.log_placeholders:remove_by_extmark_id(mark_id, bufnr)
+
+        local remaining = M.log_placeholders:buffer_placeholders(bufnr)
+        if #remaining == 0 then
+          detach_buffer(bufnr)
+        end
       end)
     end
   end
@@ -240,7 +286,7 @@ end
 ---Callback for log entry received
 --- @param entry Timber.Watcher.LogEntry
 function M.receive_log_entry(entry)
-  local log_placeholder = M.log_placeholders[entry.log_placeholder_id]
+  local log_placeholder = M.log_placeholders:get(entry.log_placeholder_id)
 
   if log_placeholder then
     table.insert(
@@ -259,7 +305,7 @@ end
 
 ---@param log_placeholder Timber.Buffers.LogPlaceholder
 function M.new_log_placeholder(log_placeholder)
-  if M.log_placeholders[log_placeholder.id] then
+  if log_placeholder.id and M.log_placeholders:get(log_placeholder.id) then
     return
   end
 
@@ -267,7 +313,7 @@ function M.new_log_placeholder(log_placeholder)
     vim.api.nvim_buf_set_extmark(log_placeholder.bufnr, M.log_placeholder_ns, log_placeholder.line, 0, {})
 
   log_placeholder.extmark_id = extmark_id
-  M.log_placeholders[log_placeholder.id] = log_placeholder
+  M.log_placeholders:add(log_placeholder)
   attach_buffer(log_placeholder.bufnr)
 
   -- Check the pending log entries and process ones targeting this placeholder
@@ -380,7 +426,7 @@ function M.open_float(opts)
     return
   end
 
-  local placeholder = M.log_placeholders[placeholder_id]
+  local placeholder = M.log_placeholders:get(placeholder_id)
   if placeholder then
     show_placeholder_full_content(placeholder, { silent = opts.silent })
   else
@@ -389,8 +435,39 @@ function M.open_float(opts)
 end
 
 local function update_placeholders_snippet()
-  for _, log_placeholder in pairs(M.log_placeholders) do
-    render_placeholder_snippet(log_placeholder)
+  for _, i in pairs(M.log_placeholders.placeholders) do
+    render_placeholder_snippet(i)
+  end
+end
+
+---Get all log statement line numbers in the current buffer or all buffers
+---@param bufnr number? Buffer number. If not provided, return results for all buffers
+---@return table<integer, integer[]> lines_per_bufnr 0-indexed line numbers grouped by buffers
+function M.get_log_statement_lines(bufnr)
+  local grouped = utils.array_group_by(M.log_placeholders.placeholders, function(placeholder)
+    return placeholder.bufnr
+  end)
+
+  local to_lines = function(items)
+    local lines = {}
+    for _, placeholder in ipairs(items) do
+      local pos =
+        vim.api.nvim_buf_get_extmark_by_id(placeholder.bufnr, M.log_placeholder_ns, placeholder.extmark_id, {})
+      table.insert(lines, pos[1])
+    end
+
+    return lines
+  end
+
+  if bufnr then
+    return grouped[bufnr] and { [bufnr] = to_lines(grouped[bufnr]) } or {}
+  else
+    local result = {}
+    for _bufnr, _placeholders in pairs(grouped) do
+      result[_bufnr] = to_lines(_placeholders)
+    end
+
+    return result
   end
 end
 

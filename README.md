@@ -75,8 +75,6 @@ See [RECIPES](https://github.com/Goose97/timber.nvim/blob/main/doc/RECIPES.md) g
 
 ## Usage
 
-`timber.nvim` has two core operations: inserting log statements and capturing log results.
-
 ### Insert log statements
 
 There are two kinds of log statements:
@@ -108,6 +106,22 @@ The content of the log statement is specified via templates. See [`:h timber.nvi
     local foo = 1
     print("LOG 1 foo", foo)
 ```
+
+### Clear log statements
+
+Clear all log statements in the current buffer:
+
+```lua
+    require("timber.actions").clear_log_statements({ global = false })
+```
+
+or from all buffers:
+
+```lua
+    require("timber.actions").clear_log_statements({ global = true })
+```
+
+Be aware of [potential limitations](https://github.com/Goose97/timber.nvim/blob/main/doc/timber.nvim.txt).
 
 ### Capture log results
 
