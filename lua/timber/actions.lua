@@ -210,6 +210,10 @@ local function after_insert_log_statements(log_statements, insert_cursor_pos, or
       vim.list_extend(inserted_lines, statement.inserted_rows)
     end
 
+    for _, line in ipairs(inserted_lines) do
+      highlight.highlight_log_statement(line)
+    end
+
     table.sort(inserted_lines, function(a, b)
       return a < b
     end)
