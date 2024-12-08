@@ -4,6 +4,17 @@ Insert log statements blazingly fast and capture log results inline 🪵
 
 https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
 
+## Table of contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [lazy.nvim](#lazy.nvim)
+  - [packer.nvim](#mini.deps)
+  - [mini.deps](#mini.deps)
+- [Setup](#setup)
+- [Showcases](#showcases)
+
 ## Features
 
 - Quickly insert log statements
@@ -55,6 +66,20 @@ use({
             -- Configuration here, or leave empty to use defaults
         })
     end
+})
+```
+
+### mini.deps
+
+```lua
+local MiniDeps = require("mini.deps");
+
+MiniDeps.add({
+    source = "Goose97/timber.nvim",
+})
+
+require("timber").setup({
+    -- Configuration here, or leave empty to use defaults
 })
 ```
 
