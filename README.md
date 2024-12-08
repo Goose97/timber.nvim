@@ -9,9 +9,6 @@ https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
-  - [lazy.nvim](#lazy.nvim)
-  - [packer.nvim](#mini.deps)
-  - [mini.deps](#mini.deps)
 - [Setup](#setup)
 - [Showcases](#showcases)
 
@@ -40,7 +37,8 @@ https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
 
 Install this plugin using your favorite plugin manager, and then call `require("timber").setup()`.
 
-### [lazy.nvim](https://github.com/folke/lazy.nvim)
+<details>
+<summary><strong>[lazy.nvim](https://github.com/folke/lazy.nvim)</strong></summary>
 
 ```lua
 {
@@ -54,6 +52,9 @@ Install this plugin using your favorite plugin manager, and then call `require("
     end
 }
 ```
+
+</details>
+
 
 ### [packer.nvim](https://github.com/wbthomason/packer.nvim)
 
