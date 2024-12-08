@@ -10,7 +10,8 @@ https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Setup](#setup)
-- [Showcases](#showcases)
+- [Usage](#usage)
+- [Misc](#misc)
 
 ## Features
 
@@ -174,7 +175,7 @@ To insert plain log statements, time tracking log statements, etc, see [RECIPES]
 ## Usage
 
 <details>
-<summary><h3>Insert log statements</h3></summary>
+<summary><strong>Insert log statements</strong></summary>
 
 There are two kinds of log statements:
 
@@ -196,18 +197,15 @@ These examples use the default configuration. The `|` denotes the cursor positio
                                                 print(string.format("foo=%s, num=%s", foo, num))
 ```
 
-The log statements can be inserted via APIs. See [`:h timber.nvim-actions.api`](https://github.com/Goose97/timber.nvim/blob/a2faec8a7525d49a2e033ce54246cd50a4fb9021/doc/timber.nvim.txt#L145) for more information.
+</details>
 
 <details>
-
-#### Customize log statements
+<summary><strong>Customize log statements</strong></summary>
 
 The content of the log statement can be customized via templates. `timber.nvim` supports some special placeholders which will be replaced after inserting:
 
 - `%log_target`: the log target text
 - `%line_number`: the line number of the log target.
-
-See [`:h timber.nvim-config.log-templates`](https://github.com/Goose97/timber.nvim/blob/a2faec8a7525d49a2e033ce54246cd50a4fb9021/doc/timber.nvim.txt#L456) for more information.
 
 ```lua
 local opts = {
@@ -223,7 +221,10 @@ require("timber").setup(opts)
 
 Out of the box, timber.nvim provides [default templates](https://github.com/Goose97/timber.nvim/blob/main/lua/timber/config.lua) for all supported languages.
 
-### Clear log statements
+</details>
+
+<details>
+<summary><strong>Clear log statements</strong></summary>
 
 Clear all log statements in the current buffer:
 
@@ -237,7 +238,10 @@ or from all buffers:
 require("timber.actions").clear_log_statements({ global = true })
 ```
 
-### Comment log statements
+</details>
+
+<details>
+<summary><strong>Comment log statements</strong></summary>
 
 Comment/uncomment all log statements in the current buffer:
 
@@ -251,7 +255,10 @@ or from all buffers:
 require("timber.actions").toggle_comment_log_statements({ global = true })
 ```
 
-### Capture log results
+</details>
+
+<details>
+<summary><strong>Capture log results</strong></summary>
 
 `timber.nvim` can monitor multiple sources and capture the log results. For example, a common use case is to capture the log results from a test runner or from a log file.
 
@@ -301,12 +308,11 @@ After the log results are captured, a snippet of the log result will be displaye
 
 See how to setup syntax highlighting for the float buffer in [RECIPES](https://github.com/Goose97/timber.nvim/blob/main/doc/RECIPES.md#pretty-captured-log-buffer).
 
-See [`:h timber.nvim-watchers`](https://github.com/Goose97/timber.nvim/blob/a2faec8a7525d49a2e033ce54246cd50a4fb9021/doc/timber.nvim.txt#L261) for more information.
+</details>
 
-## Configuration
+## Misc
 
-
-## Tips
+### Tips
 
 It's common for languages to have syntax to access fields from an object/instance. For example, in Lua, we have `foo.bar`
 or `foo["bar"]`. It introduces a problem: we have more than one potential log targets. Consider this case (`|` denotes
@@ -327,7 +333,7 @@ local foo = bar.ba|z.baf --> print("bar.baz", bar.baz)
 local foo = bar.baz.ba|f --> print("bar.baz.baf", bar.baz.baf)
 ```
 
-## Contributing
+### Contributing
 
 Any contributions are highly welcome. If you want to support new languages or extend functionalities of existing languages,
 please read [this documentation](https://github.com/Goose97/timber.nvim/blob/main/doc/HOW-IT-WORKS.md) about the internal of
