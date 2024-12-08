@@ -35,10 +35,10 @@ https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
 
 ## Installation
 
-Install this plugin using your favorite plugin manager, and then call `require("timber").setup()`.
+timber.nvim supports multiple plugin managers
 
 <details>
-<summary><strong>[lazy.nvim](https://github.com/folke/lazy.nvim)</strong></summary>
+<summary><strong>lazy.nvim</strong></summary>
 
 ```lua
 {
@@ -52,11 +52,10 @@ Install this plugin using your favorite plugin manager, and then call `require("
     end
 }
 ```
-
 </details>
 
-
-### [packer.nvim](https://github.com/wbthomason/packer.nvim)
+<details>
+<summary><strong>packer.nvim</strong></summary>
 
 ```lua
 use({
@@ -69,8 +68,10 @@ use({
     end
 })
 ```
+</details>
 
-### mini.deps
+<details>
+<summary><strong>mini.deps</strong></summary>
 
 ```lua
 local MiniDeps = require("mini.deps");
@@ -83,8 +84,81 @@ require("timber").setup({
     -- Configuration here, or leave empty to use defaults
 })
 ```
+</details>
 
-## Keymaps
+## Setup
+
+You will need to call `require("timber").setup()` to intialize the plugin. You can pass in a configuration table to customize the plugin.
+
+<details>
+<summary><strong>Default configuration</strong></summary>
+
+```lua
+{
+  log_templates = {
+    default = {
+      javascript = [[console.log("%log_target", %log_target)]],
+      typescript = [[console.log("%log_target", %log_target)]],
+      jsx = [[console.log("%log_target", %log_target)]],
+      tsx = [[console.log("%log_target", %log_target)]],
+      lua = [[print("%log_target", %log_target)]],
+      ruby = [[puts("%log_target #{%log_target}")]],
+      elixir = [[IO.inspect(%log_target, label: "%log_target")]],
+      go = [[log.Printf("%log_target: %v\n", %log_target)]],
+      rust = [[println!("%log_target: {:#?}", %log_target);]],
+      python = [[print("%log_target", %log_target)]],
+      c = [[printf("%log_target: %s\n", %log_target);]],
+      cpp = [[std::cout << "%log_target: " << %log_target << std::endl;]],
+    },
+  },
+  batch_log_templates = {
+    default = {
+      javascript = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
+      typescript = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
+      jsx = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
+      tsx = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
+      lua = [[print(string.format("%repeat<%log_target=%s><, >", %repeat<%log_target><, >))]],
+      ruby = [[puts("%repeat<%log_target: #{%log_target}><, >")]],
+      elixir = [[IO.inspect({ %repeat<%log_target><, > })]],
+      go = [[log.Printf("%repeat<%log_target: %v><, >\n", %repeat<%log_target><, >)]],
+      rust = [[println!("%repeat<%log_target: {:#?}><, >", %repeat<%log_target><, >);]],
+      python = [[print(%repeat<"%log_target", %log_target><, >)]],
+      c = [[printf("%repeat<%log_target: %s><, >\n", %repeat<%log_target><, >);]],
+      cpp = [[std::cout %repeat<<< "%log_target: " << %log_target>< << "\n  " > << std::endl;]],
+    },
+  },
+  -- Controls the flash highlight after a log statement is inserted
+  -- or a log target is added to a batch
+  highlight = {
+    on_insert = true,
+    on_add_to_batch = true,
+    duration = 500,
+  },
+  keymaps = {
+    -- Set to false to disable the default keymap for specific actions
+    -- insert_log_below = false,
+    insert_log_below = "glj",
+    insert_log_above = "glk",
+    insert_batch_log = "glb",
+    add_log_targets_to_batch = "gla",
+    insert_log_below_operator = "g<S-l>j",
+    insert_log_above_operator = "g<S-l>k",
+    insert_batch_log_operator = "g<S-l>b",
+    add_log_targets_to_batch_operator = "g<S-l>a",
+  },
+  -- Set to false to disable all default keymaps
+  default_keymaps_enabled = true,
+  log_watcher = {
+    enabled = false,
+    sources = {},
+    preview_snippet_length = 32,
+  },
+}
+```
+
+</details>
+
+### Keymaps
 
 The default configuration comes with a set of default keymaps:
 
@@ -95,13 +169,12 @@ The default configuration comes with a set of default keymaps:
 | add_log_targets_to_batch | gla | Add a log target to the batch |
 | insert_batch_log | glb | Insert a batch log statement |
 
-Detailed information on how to configure keymaps can be found in [`:h timber.nvim-config.keymaps`](https://github.com/Goose97/timber.nvim/blob/a2faec8a7525d49a2e033ce54246cd50a4fb9021/doc/timber.nvim.txt#L500).
-
 To insert plain log statements, time tracking log statements, etc, see [RECIPES](https://github.com/Goose97/timber.nvim/blob/main/doc/RECIPES.md#advanced-logging-use-cases) guide for keymap inspiration.
 
 ## Usage
 
-### Insert log statements
+<details>
+<summary><h3>Insert log statements</h3></summary>
 
 There are two kinds of log statements:
 
@@ -124,6 +197,8 @@ These examples use the default configuration. The `|` denotes the cursor positio
 ```
 
 The log statements can be inserted via APIs. See [`:h timber.nvim-actions.api`](https://github.com/Goose97/timber.nvim/blob/a2faec8a7525d49a2e033ce54246cd50a4fb9021/doc/timber.nvim.txt#L145) for more information.
+
+<details>
 
 #### Customize log statements
 
@@ -230,73 +305,6 @@ See [`:h timber.nvim-watchers`](https://github.com/Goose97/timber.nvim/blob/a2fa
 
 ## Configuration
 
-<details>
-<summary><strong>Default configuration</strong></summary>
-
-```lua
-{
-  log_templates = {
-    default = {
-      javascript = [[console.log("%log_target", %log_target)]],
-      typescript = [[console.log("%log_target", %log_target)]],
-      jsx = [[console.log("%log_target", %log_target)]],
-      tsx = [[console.log("%log_target", %log_target)]],
-      lua = [[print("%log_target", %log_target)]],
-      ruby = [[puts("%log_target #{%log_target}")]],
-      elixir = [[IO.inspect(%log_target, label: "%log_target")]],
-      go = [[log.Printf("%log_target: %v\n", %log_target)]],
-      rust = [[println!("%log_target: {:#?}", %log_target);]],
-      python = [[print("%log_target", %log_target)]],
-      c = [[printf("%log_target: %s\n", %log_target);]],
-      cpp = [[std::cout << "%log_target: " << %log_target << std::endl;]],
-    },
-  },
-  batch_log_templates = {
-    default = {
-      javascript = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
-      typescript = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
-      jsx = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
-      tsx = [[console.log({ %repeat<"%log_target": %log_target><, > })]],
-      lua = [[print(string.format("%repeat<%log_target=%s><, >", %repeat<%log_target><, >))]],
-      ruby = [[puts("%repeat<%log_target: #{%log_target}><, >")]],
-      elixir = [[IO.inspect({ %repeat<%log_target><, > })]],
-      go = [[log.Printf("%repeat<%log_target: %v><, >\n", %repeat<%log_target><, >)]],
-      rust = [[println!("%repeat<%log_target: {:#?}><, >", %repeat<%log_target><, >);]],
-      python = [[print(%repeat<"%log_target", %log_target><, >)]],
-      c = [[printf("%repeat<%log_target: %s><, >\n", %repeat<%log_target><, >);]],
-      cpp = [[std::cout %repeat<<< "%log_target: " << %log_target>< << "\n  " > << std::endl;]],
-    },
-  },
-  -- Controls the flash highlight after a log statement is inserted
-  -- or a log target is added to a batch
-  highlight = {
-    on_insert = true,
-    on_add_to_batch = true,
-    duration = 500,
-  },
-  keymaps = {
-    -- Set to false to disable the default keymap for specific actions
-    -- insert_log_below = false,
-    insert_log_below = "glj",
-    insert_log_above = "glk",
-    insert_batch_log = "glb",
-    add_log_targets_to_batch = "gla",
-    insert_log_below_operator = "g<S-l>j",
-    insert_log_above_operator = "g<S-l>k",
-    insert_batch_log_operator = "g<S-l>b",
-    add_log_targets_to_batch_operator = "g<S-l>a",
-  },
-  -- Set to false to disable all default keymaps
-  default_keymaps_enabled = true,
-  log_watcher = {
-    enabled = false,
-    sources = {},
-    preview_snippet_length = 32,
-  },
-}
-```
-
-</details>
 
 ## Tips
 
