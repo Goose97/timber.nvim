@@ -341,7 +341,8 @@ See how to setup syntax highlighting for the float buffer in [RECIPES](https://g
 
 <details>
 <summary><strong>debugprint.nvim</strong></summary>
-[Source](https://github.com/andrewferrier/debugprint.nvim)
+
+[Repo](https://github.com/andrewferrier/debugprint.nvim)
 
 - More mature plugin: support more languages and has fallback heuristic for non-supported languages.
 - Has more features: prompt users to choose expressions to print, print in insert mode
@@ -351,7 +352,8 @@ See how to setup syntax highlighting for the float buffer in [RECIPES](https://g
 
 <details>
 <summary><strong>nvim-chainsaw</strong></summary>
-[Source](https://github.com/chrisgrieser/nvim-chainsaw)
+
+[Repo](https://github.com/chrisgrieser/nvim-chainsaw)
 
 - Comes with many built-in commands: objectLog, typeLog, assertLog, etc
 - Can not customize log statements content
@@ -361,15 +363,17 @@ See how to setup syntax highlighting for the float buffer in [RECIPES](https://g
 
 <details>
 <summary><strong>printer.nvim</strong></summary>
-[Source](https://github.com/rareitems/printer.nvim)
 
-- Can customize log statements content
+[Repo](https://github.com/rareitems/printer.nvim)
+
+- Support only `below` log position or put the log statement into yank register
 - Does not use Treesitter to power log
 </details>
 
 <details>
 <summary><strong>logsitter.nvim</strong></summary>
-[Source](https://github.com/gaelph/logsitter.nvim)
+
+[Repo](https://github.com/gaelph/logsitter.nvim)
 
 - Use Treesitter to power log
 - Limited support for languages: only Javascript like, Golang, Lua, Python, Swift
