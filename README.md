@@ -11,6 +11,7 @@ https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
 - [Installation](#installation)
 - [Setup](#setup)
 - [Usage](#usage)
+- [Comparison with other plugins](#comparison-with-other-plugins)
 - [Misc](#misc)
 
 ## Features
@@ -241,7 +242,7 @@ require("timber.actions").clear_log_statements({ global = true })
 </details>
 
 <details>
-<summary><strong>Comment log statements</strong></summary>
+<summary><strong>Comment/uncomment log statements</strong></summary>
 
 Comment/uncomment all log statements in the current buffer:
 
@@ -258,9 +259,9 @@ require("timber.actions").toggle_comment_log_statements({ global = true })
 </details>
 
 <details>
-<summary><strong>Capture log results</strong></summary>
+<summary><strong>Capture log output</strong></summary>
 
-`timber.nvim` can monitor multiple sources and capture the log results. For example, a common use case is to capture the log results from a test runner or from a log file.
+`timber.nvim` can monitor multiple sources and capture the log output. For example, a common use case is to capture the log output from a test runner or from a log file.
 
 Here's an example configuration:
 
@@ -309,6 +310,72 @@ After the log results are captured, a snippet of the log result will be displaye
 See how to setup syntax highlighting for the float buffer in [RECIPES](https://github.com/Goose97/timber.nvim/blob/main/doc/RECIPES.md#pretty-captured-log-buffer).
 
 </details>
+
+## Comparison with other plugins
+
+<details>
+<summary><strong>timber.nvim</strong></summary>
+
+- Pros:
+    - Capture log target using Treesitter. This makes inserting log statements more accurate.
+
+    ```lua
+    if (
+        foo > bar and
+        -- print("foo", foo) - ❌ Non-Treesitter plugin will insert here
+        bar > baz
+    ) then
+        -- print("foo", foo) - ✅ timber.nvim will insert here
+    end
+    ```
+
+    - Insert multiple log statements at once using visual mode
+    - Capture multiple log targets in a single statement. This makes log output more readable and organized.
+    - Can capture log output and display it inline or in a floating window
+
+- Cons:
+    - Treesitter requires hand-written queries for each languages. timber.nvim does not support all languages out of the box.
+    - Must install Treesitter parser for each language
+
+</details>
+
+<details>
+<summary><strong>debugprint.nvim</strong></summary>
+[Source](https://github.com/andrewferrier/debugprint.nvim)
+
+- More mature plugin: support more languages and has fallback heuristic for non-supported languages.
+- Has more features: prompt users to choose expressions to print, print in insert mode
+- Does not use Treesitter to power log
+
+</details>
+
+<details>
+<summary><strong>nvim-chainsaw</strong></summary>
+[Source](https://github.com/chrisgrieser/nvim-chainsaw)
+
+- Comes with many built-in commands: objectLog, typeLog, assertLog, etc
+- Can not customize log statements content
+- Does not use Treesitter to power log
+
+</details>
+
+<details>
+<summary><strong>printer.nvim</strong></summary>
+[Source](https://github.com/rareitems/printer.nvim)
+
+- Can customize log statements content
+- Does not use Treesitter to power log
+</details>
+
+<details>
+<summary><strong>logsitter.nvim</strong></summary>
+[Source](https://github.com/gaelph/logsitter.nvim)
+
+- Use Treesitter to power log
+- Limited support for languages: only Javascript like, Golang, Lua, Python, Swift
+- Log statements customization is limited: can only specify the log prefix and separator
+</details>
+
 
 ## Misc
 
