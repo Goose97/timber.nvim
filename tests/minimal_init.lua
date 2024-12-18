@@ -37,6 +37,7 @@ require("nvim-treesitter.configs").setup({
     "c_sharp",
     "odin",
     "bash",
+    "swift",
   },
   sync_install = true,
   auto_install = false,

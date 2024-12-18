@@ -498,6 +498,8 @@ timber.setup({opts})                                          *timber.setup()*
 	java = [[System.out.println("%log_target: " + %log_target);]],
 	c_sharp = [[Console.WriteLine($"%log_target: {%log_target}");]],
 	odin = [[fmt.printfln("%log_target: %v", %log_target)]],
+	bash = [[echo "%log_target: ${%log_target}"]],
+	swift = [[print("%log_target:", %log_target)]],
       },
       plain = {
 	javascript = [[console.log("%insert_cursor")]],
@@ -515,6 +517,8 @@ timber.setup({opts})                                          *timber.setup()*
 	java = [[System.out.println("%insert_cursor");]],
 	c_sharp = [[Console.WriteLine("%insert_cursor");]],
 	odin = [[fmt.println("%insert_cursor")]],
+	bash = [[echo "%insert_cursor"]],
+	swift = [[print("%insert_cursor")]],
       },
     },
     batch_log_templates = {
@@ -534,6 +538,8 @@ timber.setup({opts})                                          *timber.setup()*
 	java = [[System.out.printf("%repeat<%log_target=%s><, >%n", %repeat<%log_target><, >);]],
 	c_sharp = [[Console.WriteLine($"%repeat<%log_target: {%log_target}><, >");]],
 	odin = [[fmt.printfln("%repeat<%log_target: %v><, >", %repeat<%log_target><, >)]],
+	bash = [[echo "%repeat<%log_target: ${%log_target}><, >"]],
+	swift = [[print("%repeat<%log_target: %log_target><, >")]],
       },
     },
     log_marker = "🪵",
@@ -568,6 +574,12 @@ timber.setup({opts})                                          *timber.setup()*
 	next_entry = "]]",
 	prev_entry = "[[",
 	close = "q",
+      },
+      default_keymaps_enabled = true,
+      win = {
+	width = { 60, 0.4 },
+	position = "left",
+	opts = {},
       },
     },
   }

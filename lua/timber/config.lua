@@ -46,6 +46,7 @@ local default_config = {
       c_sharp = [[Console.WriteLine($"%log_target: {%log_target}");]],
       odin = [[fmt.printfln("%log_target: %v", %log_target)]],
       bash = [[echo "%log_target: ${%log_target}"]],
+      swift = [[print("%log_target:", %log_target)]],
     },
     plain = {
       javascript = [[console.log("%insert_cursor")]],
@@ -64,6 +65,7 @@ local default_config = {
       c_sharp = [[Console.WriteLine("%insert_cursor");]],
       odin = [[fmt.println("%insert_cursor")]],
       bash = [[echo "%insert_cursor"]],
+      swift = [[print("%insert_cursor")]],
     },
   },
   batch_log_templates = {
@@ -84,6 +86,7 @@ local default_config = {
       c_sharp = [[Console.WriteLine($"%repeat<%log_target: {%log_target}><, >");]],
       odin = [[fmt.printfln("%repeat<%log_target: %v><, >", %repeat<%log_target><, >)]],
       bash = [[echo "%repeat<%log_target: ${%log_target}><, >"]],
+      swift = [[print("%repeat<%log_target: %log_target><, >")]],
     },
   },
   -- The string to search for when deleting or commenting log statements

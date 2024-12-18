@@ -4,7 +4,6 @@ local M = { batch = {} }
 
 local config = require("timber.config")
 local events = require("timber.events")
-local highlight = require("timber.highlight")
 local watcher = require("timber.watcher")
 local treesitter = require("timber.actions.treesitter")
 local utils = require("timber.utils")
