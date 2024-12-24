@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/Goose97/timber.nvim/compare/v2.1.0...v2.2.0) (2024-12-24)
+
+
+### Features
+
+* **actions:** add simple fallback logic for languages without Treesitter parsers ([62f1dbe](https://github.com/Goose97/timber.nvim/commit/62f1dbe993486f583349548fbcd85cde5de58ea5))
+
+
+### Bug Fixes
+
+* **javascript:** class property ([#20](https://github.com/Goose97/timber.nvim/issues/20)) ([518c6a5](https://github.com/Goose97/timber.nvim/commit/518c6a50c378fc527dd1c61f8e8de368cd4df40a))
+
 ## [2.1.0](https://github.com/Goose97/timber.nvim/compare/v2.0.0...v2.1.0) (2024-12-20)
 
 
