@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.2.0](https://github.com/Goose97/timber.nvim/compare/v2.1.0...v2.2.0) (2025-01-15)
+
+
+### Features
+
+* **actions:** add simple fallback logic for languages without Treesitter parsers ([62f1dbe](https://github.com/Goose97/timber.nvim/commit/62f1dbe993486f583349548fbcd85cde5de58ea5))
+* **actions:** support automatically insert import lines ([144fd26](https://github.com/Goose97/timber.nvim/commit/144fd26b8a5cc152f7baf0cb2fd4c5b48f1a9a96))
+* **python:** use f-String formatting ([#23](https://github.com/Goose97/timber.nvim/issues/23)) ([3a04f50](https://github.com/Goose97/timber.nvim/commit/3a04f5091a682099e17ac5aa22b90740607de7b5))
+* **search:** add search feature powered by telescope.nvim ([eaf3143](https://github.com/Goose97/timber.nvim/commit/eaf3143f172985fc3fed8c38fa989a6bb63c435c))
+
+
+### Bug Fixes
+
+* failing tests on CI ([2917d1d](https://github.com/Goose97/timber.nvim/commit/2917d1df907ff2c896fd8a6379374fb923aabad3))
+* **javascript:** class property ([#20](https://github.com/Goose97/timber.nvim/issues/20)) ([518c6a5](https://github.com/Goose97/timber.nvim/commit/518c6a50c378fc527dd1c61f8e8de368cd4df40a))
+* remove bug code ([632885e](https://github.com/Goose97/timber.nvim/commit/632885e66843a28cef5fadb51bd27c7202b6050a))
+
 ## [2.1.0](https://github.com/Goose97/timber.nvim/compare/v2.0.0...v2.1.0) (2024-12-20)
 
 
