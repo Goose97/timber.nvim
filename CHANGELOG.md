@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.3.0](https://github.com/Goose97/timber.nvim/compare/v2.2.0...v2.3.0) (2025-03-26)
+
+
+### Features
+
+* **actions:** add Astro language support ([0d8046a](https://github.com/Goose97/timber.nvim/commit/0d8046a8653c80727c6efbe6162026e23cc50240))
+* **actions:** add Astro language support ([e6fd925](https://github.com/Goose97/timber.nvim/commit/e6fd9251787a4ca8d3ef90143dfc6216cd76cfc4))
+* **watcher:** auto create file if doesn't exist ([84e2913](https://github.com/Goose97/timber.nvim/commit/84e291322e94015b19011a3bdf4b2b59001a771a))
+
+
+### Bug Fixes
+
+* **actions:** update cpp syntax ([9874538](https://github.com/Goose97/timber.nvim/commit/98745380c27b8fffbc7861b7a7d3fce325d8139d))
+* **watcher:** can't capture log statement for multi-line template ([f75eb66](https://github.com/Goose97/timber.nvim/commit/f75eb668e8246b403d7f4861bdd2ca156f090adb))
+
 ## [2.2.0](https://github.com/Goose97/timber.nvim/compare/v2.1.0...v2.2.0) (2025-01-15)
 
 
