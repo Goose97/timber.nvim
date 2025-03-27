@@ -24,6 +24,7 @@ require("nvim-treesitter.configs").setup({
     "astro",
     "tsx",
     "lua",
+    "luau",
     "ruby",
     "elixir",
     "go",
