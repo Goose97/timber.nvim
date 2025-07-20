@@ -19,6 +19,7 @@ require("plenary.busted")
 
 require("nvim-treesitter.configs").setup({
   ensure_installed = {
+    "dart",
     "javascript",
     "typescript",
     "astro",
