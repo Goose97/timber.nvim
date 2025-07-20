@@ -40,6 +40,7 @@ require("nvim-treesitter.configs").setup({
     "kotlin",
     "vue",
     "scala",
+    "dart",
   },
   sync_install = true,
   auto_install = false,

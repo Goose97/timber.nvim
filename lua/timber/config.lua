@@ -58,6 +58,7 @@ local default_config = {
       swift = [[print("%log_target:", %log_target)]],
       kotlin = [[println("%log_target: ${%log_target}")]],
       scala = [[println(s"%log_target: ${%log_target}")]],
+      dart = [[print("%log_target: ${%log_target}")]],
     },
     plain = {
       javascript = [[console.log("%insert_cursor")]],
@@ -82,6 +83,7 @@ local default_config = {
       swift = [[print("%insert_cursor")]],
       kotlin = [[println("%insert_cursor")]],
       scala = [[println("%insert_cursor")]],
+      dart = [[print("%insert_cursor")]],
     },
   },
   batch_log_templates = {
@@ -108,6 +110,7 @@ local default_config = {
       swift = [[print("%repeat<%log_target: %log_target><, >")]],
       kotlin = [[println("%repeat<%log_target=${%log_target}><, >")]],
       scala = [[println(s"%repeat<%log_target=${%log_target}><, >")]],
+      dart = [[print(s"%repeat<%log_target=${%log_target}><, >")]],
     },
   },
   template_placeholders = {

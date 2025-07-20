@@ -1,0 +1,3 @@
+(
+  (identifier) @log_target
+)
