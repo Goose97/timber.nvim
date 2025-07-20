@@ -39,6 +39,7 @@ require("nvim-treesitter.configs").setup({
     "swift",
     "kotlin",
     "vue",
+    "scala",
   },
   sync_install = true,
   auto_install = false,

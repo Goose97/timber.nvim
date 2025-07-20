@@ -38,6 +38,7 @@ https://github.com/user-attachments/assets/6bbcb1ab-45a0-45f3-a03a-1d0780219362
   - Bash
   - Swift
   - Kotlin
+  - Scala
   - [Fallback for others](#fallback-for-non-treesitter-languages)
 
 ## Requirements
@@ -136,6 +137,7 @@ You will need to call `require("timber").setup()` to intialize the plugin. You c
             odin = [[fmt.printfln("%log_target: %v", %log_target)]],
             swift = [[print("%log_target:", %log_target)]],
             kotlin = [[println("%log_target: ${%log_target}")]],
+            scala = [[println(s"%log_target: ${%log_target}")]],
         },
         plain = {
             javascript = [[console.log("%insert_cursor")]],
@@ -158,6 +160,7 @@ You will need to call `require("timber").setup()` to intialize the plugin. You c
             odin = [[fmt.println("%insert_cursor")]],
             swift = [[print("%insert_cursor")]],
             kotlin = [[println("%insert_cursor")]],
+            scala = [[println("%insert_cursor")]],
         },
     },
     batch_log_templates = {
@@ -182,6 +185,7 @@ You will need to call `require("timber").setup()` to intialize the plugin. You c
             odin = [[fmt.printfln("%repeat<%log_target: %v><, >", %repeat<%log_target><, >)]],
             swift = [[print("%repeat<%log_target: %log_target><, >")]],
             kotlin = [[println("%repeat<%log_target=${%log_target}><, >")]],
+            scala = [[println(s"%repeat<%log_target=${%log_target}><, >")]],
         },
     },
     template_placeholders = {
