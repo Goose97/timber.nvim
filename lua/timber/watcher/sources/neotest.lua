@@ -38,7 +38,11 @@ function M.new(source_spec, on_log_capture)
 end
 
 function M.consumer(client)
-  client.listeners.results = function(_, results)
+  client.listeners.results = function(_, results, partial)
+    if partial then
+      return
+    end
+
     if not M.singleton then
       vim.schedule(function()
         utils.notify("Neotest source is not started. Please add neotest source to the watcher config", "warn")

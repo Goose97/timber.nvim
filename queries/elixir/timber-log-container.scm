@@ -21,7 +21,7 @@
   (call
     target: (identifier) @function_name
     (arguments) @log_container
-    (#any-of? @function_name "case" "cond")
+    (#any-of? @function_name "case" "cond" "assert")
   ) @a
   (#make-logable-range! @a "outer")
 )

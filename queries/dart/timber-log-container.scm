@@ -44,6 +44,20 @@
   (#make-logable-range! @body "inner" 1 -1)
 )
 
+; function in class
+(class_definition
+  body: (class_body
+    (method_signature
+      (constructor_signature
+        parameters: (formal_parameter_list) @log_container
+      )
+    )
+    .
+    (function_body) @body
+  )
+  (#make-logable-range! @body "inner" 1 -1)
+)
+
 (function_expression
   parameters: (formal_parameter_list) @log_container
   body: (function_expression_body) @body
