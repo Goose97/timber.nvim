@@ -211,6 +211,11 @@ function M.setup()
     ---@type TSNode
     local node = match[capture_id]
 
+    -- Breaking changes: https://github.com/neovim/neovim/pull/30193
+    if vim.fn.has("nvim-0.11") == 1 then
+      node = node[1]
+    end
+
     -- Get the adjustment values from the predicate arguments
     local start_adjust = tonumber(predicate[4]) or 0
     local end_adjust = tonumber(predicate[5]) or 0
