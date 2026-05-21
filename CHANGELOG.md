@@ -19,6 +19,28 @@
 ### Bug Fixes
 
 * **elixir:** arguments in function calls are not captured ([c752851](https://github.com/Goose97/timber.nvim/commit/c7528510e7c6a3331dccd5556052590d16692dc5))
+* failing tests ([b6442af](https://github.com/Goose97/timber.nvim/commit/b6442af0507447ca7a529f93dde1ee7598bd9665))
+* **treesitter:** use get_match_node when adding directive ([#44](https://github.com/Goose97/timber.nvim/issues/44)) ([0d0afa4](https://github.com/Goose97/timber.nvim/commit/0d0afa439b82902e6cd5ce7116bf59b865daba9e))
+
+## [2.4.0](https://github.com/Goose97/timber.nvim/compare/v2.3.0...v2.4.0) (2026-05-21)
+
+
+### Features
+
+* add Scala language support ([#39](https://github.com/Goose97/timber.nvim/issues/39)) ([f67f837](https://github.com/Goose97/timber.nvim/commit/f67f837d6155f57a134fe587202e89102f53fb92))
+* **dart:** add Dart language support ([#41](https://github.com/Goose97/timber.nvim/issues/41)) ([7f4ab47](https://github.com/Goose97/timber.nvim/commit/7f4ab47e7409442a80f96aa743c224ba8a771bdf))
+* **dart:** add semicolon to default log template ([d32f10e](https://github.com/Goose97/timber.nvim/commit/d32f10e30c1056861c412a00a028869538998e30))
+* **dart:** handle constructor signature ([405a9af](https://github.com/Goose97/timber.nvim/commit/405a9afeabf56181fb04e8a0f23eb9ecdb2c736f))
+* **dart:** suppport field access expression ([73efb34](https://github.com/Goose97/timber.nvim/commit/73efb34816264695bfe242281cce3baf2c7dd895))
+* don't insert auto_imports if there's no log targets captured ([844cb1f](https://github.com/Goose97/timber.nvim/commit/844cb1f39b1b667125a61e7d995650b6ad6d2661))
+* **elixir:** support assert function ([1038a15](https://github.com/Goose97/timber.nvim/commit/1038a15f846e73840819355cab1c4346e6cf97f6))
+* **php:** add PHP language support ([#43](https://github.com/Goose97/timber.nvim/issues/43)) ([89f027b](https://github.com/Goose97/timber.nvim/commit/89f027b1142ce0795b3c0141f330ee6bd4b35f96))
+* **watcher:** do not handle partial result from neotest ([b72d262](https://github.com/Goose97/timber.nvim/commit/b72d2628ee6f91d7117fdbf3b8f883eb7e066bdd))
+
+
+### Bug Fixes
+
+* **elixir:** arguments in function calls are not captured ([c752851](https://github.com/Goose97/timber.nvim/commit/c7528510e7c6a3331dccd5556052590d16692dc5))
 * **treesitter:** use get_match_node when adding directive ([#44](https://github.com/Goose97/timber.nvim/issues/44)) ([0d0afa4](https://github.com/Goose97/timber.nvim/commit/0d0afa439b82902e6cd5ce7116bf59b865daba9e))
 
 ## [2.3.0](https://github.com/Goose97/timber.nvim/compare/v2.2.0...v2.3.0) (2025-05-08)
