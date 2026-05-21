@@ -41,6 +41,7 @@ require("nvim-treesitter.configs").setup({
     "vue",
     "scala",
     "dart",
+    "php",
   },
   sync_install = true,
   auto_install = false,
