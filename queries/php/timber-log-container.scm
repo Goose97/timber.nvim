@@ -48,15 +48,13 @@
   (#make-logable-range! @a "inner" 1 -1)
 )
 
-; Foreach statements
-(
-  (foreach_statement
-    (variable_name) @log_container
-    body: (compound_statement) @a
-    (#make-logable-range! @a "inner" 1 -1)
-  ) @b
-  (#make-logable-range! @b "before")
-)
+; Foreach statements — include the whole header (iterable + key/value
+; bindings) as the container so $items, $key, $value are all log targets.
+(foreach_statement
+  body: (compound_statement) @a
+  (#make-logable-range! @a "inner" 1 -1)
+  (#make-logable-range! @log_container "before")
+) @log_container
 
 ; For statements
 (for_statement
@@ -75,14 +73,6 @@
   (#make-logable-range! @b "before")
 )
 
-; Switch statements
-(
-  (switch_statement
-    condition: (_) @log_container
-  ) @a
-  (#make-logable-range! @a "outer")
-)
-
 ; Switch case clauses
 (case_statement
   value: (_) @log_container
@@ -90,10 +80,15 @@
   (#make-logable-range! @a "inner")
 )
 
-; Default case
-(default_statement
-  (_) @a
-  (#make-logable-range! @a "inner")
+; Default case — log the enclosing switch's condition at the end of the
+; default body. This is how the switch condition variable gets logged for
+; a `switch ($foo)`.
+(switch_statement
+  condition: (_) @log_container
+  body: (switch_block
+    (default_statement) @a
+  )
+  (#make-logable-range! @a "after")
 )
 
 ; Match expressions (PHP 8.0+)

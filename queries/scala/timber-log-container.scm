@@ -1,5 +1,5 @@
 (class_definition
-  parameters: (class_parameters) @log_container
+  (class_parameters) @log_container
   body: (template_body) @body
   (#make-logable-range! @body "inner" 1 -1)
 )

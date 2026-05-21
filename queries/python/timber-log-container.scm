@@ -74,10 +74,10 @@
  (#make-logable-range! @a "outer")
 )
 
-(
- (case_clause
-   (case_pattern) @log_container
-   consequence: (block) @a
-  ) @a
- (#make-logable-range! @a "inner")
+; `case_pattern` is a supertype that isn't matchable by name in current
+; tree-sitter-python; use the wildcard for the first named child.
+(case_clause
+  . (_) @log_container
+  consequence: (block) @a
+  (#make-logable-range! @a "inner")
 )

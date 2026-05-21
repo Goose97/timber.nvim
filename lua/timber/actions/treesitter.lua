@@ -78,7 +78,7 @@ function M.query_log_target_containers(lang, range)
         local log_container = match[utils.get_key_by_value(query.captures, "log_container")]
 
         -- Breaking changes: https://github.com/neovim/neovim/pull/30193
-        if vim.fn.has("nvim-0.11") == 1 then
+        if vim.fn.has("nvim-0.11") == 1 and log_container then
           log_container = log_container[1]
         end
 
@@ -231,7 +231,7 @@ function M.setup()
     local start_row, _, end_row, _ = node:range()
 
     -- Adjust the range
-    local adjusted_start_row = math.max(0, start_row + start_adjust) -- Ensure we don't go below 0
+    local adjusted_start_row = math.max(0, start_row + start_adjust)                -- Ensure we don't go below 0
     local adjusted_end_row = math.max(adjusted_start_row, end_row + 1 + end_adjust) -- Ensure end is not before start
 
     local logable_ranges = metadata.logable_ranges or {}

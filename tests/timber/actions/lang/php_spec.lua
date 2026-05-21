@@ -39,11 +39,11 @@ error_log("$foo: " . print_r($foo));
         action = function()
           actions.insert_log({ position = "above" })
         end,
-  expected = [[
-<?php
-  error_log("$foo: " . print_r($foo));
-  $foo = "bar";
-  ]],
+        expected = [[
+          <?php
+          error_log("$foo: " . print_r($foo));
+          $foo = "bar";
+        ]],
       })
     end)
 
@@ -236,7 +236,7 @@ error_log("$foo: " . print_r($foo));
     it("supports anonymous function", function()
       helper.assert_scenario({
         input = [[
-        <?php
+          <?php
           $func = function($fo|o, $bar) {
               return $foo + $bar;
           };
@@ -246,14 +246,15 @@ error_log("$foo: " . print_r($foo));
           vim.cmd("normal! V")
           actions.insert_log({ position = "below" })
         end,
-  expected = [[
-<?php
-  $func = function($foo, $bar) {
-      error_log("$foo: " . print_r($foo));
-      error_log("$bar: " . print_r($bar));
-      return $foo + $bar;
-  };
-  ]],
+        expected = [[
+          <?php
+          $func = function($foo, $bar) {
+              error_log("$foo: " . print_r($foo));
+              error_log("$bar: " . print_r($bar));
+              return $foo + $bar;
+          };
+          error_log("$func: " . print_r($func));
+        ]],
       })
     end)
 
@@ -425,8 +426,8 @@ expected = [[
 <?php
 error_log("$items: " . print_r($items));
 foreach ($items as $item) {
-    error_log("$item: " . print_r($item));
     error_log("$items: " . print_r($items));
+    error_log("$item: " . print_r($item));
     echo $item;
 }
 ]],
@@ -449,9 +450,9 @@ expected = [[
 <?php
 error_log("$items: " . print_r($items));
 foreach ($items as $key => $value) {
+    error_log("$items: " . print_r($items));
     error_log("$key: " . print_r($key));
     error_log("$value: " . print_r($value));
-    error_log("$items: " . print_r($items));
     echo $value;
 }
 ]],
@@ -566,8 +567,9 @@ switch ($foo) {
 expected = [[
 <?php
 try {
-    error_log("$foo: " . print_r($foo));
     $result = riskyOperation($foo);
+    error_log("$result: " . print_r($result));
+    error_log("riskyOperation($foo): " . print_r(riskyOperation($foo)));
 } catch (Exception $e) {
     error_log("$e: " . print_r($e));
     return null;
@@ -720,74 +722,70 @@ try {
     it("supports method call chains", function()
       helper.assert_scenario({
         input = [[
-        <?php
-          $result = $client->metricTaxonomies()->get("general.total_placements");
+          <?php
+          $result = $client->metricTaxo|nomies()->get("general.total_placements");
         ]],
         filetype = "php",
         action = function()
-          vim.cmd("normal! ^f>ll")  -- Move to "metricTaxonomies"
           actions.insert_log({ position = "below" })
         end,
-  expected = [[
-<?php
-  $result = $client->metricTaxonomies()->get("general.total_placements");
-  error_log("$client->metricTaxonomies(): " . print_r($client->metricTaxonomies()));
-  ]],
+        expected = [[
+          <?php
+          $result = $client->metricTaxonomies()->get("general.total_placements");
+          error_log("$client->metricTaxonomies(): " . print_r($client->metricTaxonomies()));
+        ]],
       })
 
       helper.assert_scenario({
         input = [[
-        <?php
-          $result = $client->metricTaxonomies()->get("general.total_placements");
+          <?php
+          $result = $cli|ent->metricTaxonomies()->get("general.total_placements");
         ]],
         filetype = "php",
         action = function()
-          vim.cmd("normal! ^fc")  -- Move to "$client"
           actions.insert_log({ position = "below" })
         end,
-  expected = [[
-<?php
-  $result = $client->metricTaxonomies()->get("general.total_placements");
-  error_log("$client: " . print_r($client));
-  ]],
+        expected = [[
+          <?php
+          $result = $client->metricTaxonomies()->get("general.total_placements");
+          error_log("$client: " . print_r($client));
+        ]],
       })
     end)
 
     it("supports regular function calls", function()
       helper.assert_scenario({
         input = [[
-        <?php
-          $result = strtoupper($text);
+          <?php
+          $result = strtou|pper($text);
         ]],
         filetype = "php",
         action = function()
-          vim.cmd("normal! ^ft")  -- Move to "strtoupper"
           actions.insert_log({ position = "below" })
         end,
-  expected = [[
-<?php
-  $result = strtoupper($text);
-  error_log("strtoupper($text): " . print_r(strtoupper($text)));
-  ]],
+        expected = [[
+          <?php
+          $result = strtoupper($text);
+          error_log("strtoupper($text): " . print_r(strtoupper($text)));
+        ]],
       })
     end)
 
     it("supports static method calls", function()
       helper.assert_scenario({
         input = [[
-        <?php
-          $result = MyClass::staticMethod($arg);
+          <?php
+          $result = MyCl|ass::staticMethod($arg);
         ]],
         filetype = "php",
         action = function()
-          vim.cmd("normal! ^fM")  -- Move to "MyClass"
           actions.insert_log({ position = "below" })
         end,
-  expected = [[
-<?php
-  $result = MyClass::staticMethod($arg);
-  error_log("MyClass::staticMethod($arg): " . print_r(MyClass::staticMethod($arg)));
-  ]],
+        expected = [[
+          <?php
+          $result = MyClass::staticMethod($arg);
+          error_log("MyClass::staticMethod($arg): " . print_r(MyClass::staticMethod($arg)));
+        ]],
       })
     end)
   end)
