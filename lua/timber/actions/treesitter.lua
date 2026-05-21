@@ -204,12 +204,24 @@ local function is_node_field_of_ancestor(node, ancestor_type, field_name)
 end
 
 function M.setup()
+  ---@return TSNode
+  local get_match_node = function(match, capture_id)
+    local node = match[capture_id]
+
+    -- Breaking changes: https://github.com/neovim/neovim/pull/30193
+    if vim.fn.has("nvim-0.11") == 1 then
+      node = node[1]
+    end
+
+    return node
+  end
+
   vim.treesitter.query.add_directive("make-logable-range!", function(match, _, _, predicate, metadata)
     local capture_id = predicate[2]
     local range_type = predicate[3]
 
     ---@type TSNode
-    local node = match[capture_id]
+    local node = get_match_node(match, capture_id)
 
     -- Get the adjustment values from the predicate arguments
     local start_adjust = tonumber(predicate[4]) or 0
@@ -241,22 +253,10 @@ function M.setup()
     local start_range_id = predicate[2]
     local end_range_id = predicate[3]
 
-    local start_node = match[start_range_id]
-    local end_node = match[end_range_id]
+    local start_node = get_match_node(match, start_range_id)
+    local end_node = get_match_node(match, end_range_id)
     metadata.log_target_range = { start_node, end_node }
   end, { force = true })
-
-  ---@return TSNode
-  local get_match_node = function(match, capture_id)
-    local node = match[capture_id]
-
-    -- Breaking changes: https://github.com/neovim/neovim/pull/30193
-    if vim.fn.has("nvim-0.11") == 1 then
-      node = node[1]
-    end
-
-    return node
-  end
 
   -- Similar to has-parent?, but also check the node is a field of the parent
   vim.treesitter.query.add_predicate("field-of-parent?", function(match, _, _, predicate)
